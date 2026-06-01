@@ -3,8 +3,8 @@ import { getToken } from '../utils/auth';
 import { imgUrl, API_BASE } from '../utils/config';
 import ChefHeader from '../components/ChefHeader';
 import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
 
 const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport'];
 const CATEGORIES = ['Berline', 'Citadine', 'SUV', 'Utilitaire'];
