@@ -131,8 +131,8 @@ export default function Gestion() {
     return res.json();
   };
 
-  const loadCars         = () => apiFetch('/cars?admin=1').then(setCars).catch(() => {});
-  const loadAnnouncements = () => apiFetch('/announcements?admin=1').then(setAnnouncements).catch(() => {});
+  const loadCars         = () => apiFetch('/cars/admin/all').then(setCars).catch(() => {});
+  const loadAnnouncements = () => apiFetch('/announcements/admin/all').then(setAnnouncements).catch(() => {});
   const loadReservations  = () => apiFetch('/reservations').then(setReservations).catch(() => {});
 
   // ── Photo upload ──
@@ -142,10 +142,8 @@ export default function Gestion() {
     setUploading(true);
     const formData = new FormData();
     formData.append('image', file);
-    console.log('API_BASE:', import.meta.env.VITE_API_URL);
-    console.log('Upload URL:', `${API_BASE}/api/admin/cars/upload`);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/cars/upload`, {
+      const res = await fetch(`${API_BASE}/api/cars/admin/upload`, {
         method: 'POST',
         headers: { 'x-admin-token': getToken() },
         body: formData,
@@ -190,8 +188,8 @@ export default function Gestion() {
     e.preventDefault();
     const payload = { ...carForm, image_url: imageUrl || '' };
     try {
-      if (editCar) await apiFetch('/cars', { method: 'PUT', body: JSON.stringify({ id: editCar.id, ...payload }) });
-      else await apiFetch('/cars', { method: 'POST', body: JSON.stringify(payload) });
+      if (editCar) await apiFetch(`/cars/admin/${editCar.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      else await apiFetch('/cars/admin', { method: 'POST', body: JSON.stringify(payload) });
       setCarModal(false);
       loadCars();
     } catch (err) {
@@ -202,7 +200,7 @@ export default function Gestion() {
   const deleteCar = async (id) => {
     if (window.confirm('Supprimer cette voiture ?')) {
       try {
-        await apiFetch(`/cars?id=${id}`, { method: 'DELETE' });
+        await apiFetch(`/cars/admin/${id}`, { method: 'DELETE' });
         loadCars();
       } catch (err) {
         alert('Erreur: ' + err.message);
@@ -212,7 +210,7 @@ export default function Gestion() {
 
   const toggleCarStatus = async (c) => {
     try {
-      await apiFetch('/cars', { method: 'PUT', body: JSON.stringify({ ...c, status: c.status === 'active' ? 'inactive' : 'active' }) });
+      await apiFetch(`/cars/admin/${c.id}`, { method: 'PUT', body: JSON.stringify({ ...c, status: c.status === 'active' ? 'inactive' : 'active' }) });
       loadCars();
     } catch (err) {
       console.error('Toggle status error:', err);
@@ -226,8 +224,8 @@ export default function Gestion() {
   const saveAnn = async (e) => {
     e.preventDefault();
     try {
-      if (editAnn) await apiFetch('/announcements', { method: 'PUT', body: JSON.stringify({ id: editAnn.id, ...annForm }) });
-      else await apiFetch('/announcements', { method: 'POST', body: JSON.stringify(annForm) });
+      if (editAnn) await apiFetch(`/announcements/admin/${editAnn.id}`, { method: 'PUT', body: JSON.stringify(annForm) });
+      else await apiFetch('/announcements/admin', { method: 'POST', body: JSON.stringify(annForm) });
       setAnnModal(false);
       loadAnnouncements();
     } catch (err) {
@@ -238,7 +236,7 @@ export default function Gestion() {
   const deleteAnn = async (id) => {
     if (window.confirm('Supprimer cette annonce ?')) {
       try {
-        await apiFetch(`/announcements?id=${id}`, { method: 'DELETE' });
+        await apiFetch(`/announcements/admin/${id}`, { method: 'DELETE' });
         loadAnnouncements();
       } catch (err) {
         alert('Erreur: ' + err.message);
@@ -248,7 +246,7 @@ export default function Gestion() {
 
   const toggleAnnStatus = async (a) => {
     try {
-      await apiFetch('/announcements', { method: 'PUT', body: JSON.stringify({ ...a, status: a.status === 'active' ? 'inactive' : 'active' }) });
+      await apiFetch(`/announcements/admin/${a.id}`, { method: 'PUT', body: JSON.stringify({ ...a, status: a.status === 'active' ? 'inactive' : 'active' }) });
       loadAnnouncements();
     } catch (err) {
       console.error('Toggle ann status error:', err);
@@ -266,7 +264,7 @@ export default function Gestion() {
       return;
     }
     try {
-      if (editRes) await apiFetch('/reservations', { method: 'PUT', body: JSON.stringify({ id: editRes.id, ...resForm }) });
+      if (editRes) await apiFetch(`/reservations/${editRes.id}`, { method: 'PUT', body: JSON.stringify(resForm) });
       else await apiFetch('/reservations', { method: 'POST', body: JSON.stringify(resForm) });
       setResModal(false);
       loadReservations();
@@ -278,7 +276,7 @@ export default function Gestion() {
   const deleteRes = async (id) => {
     if (window.confirm('Supprimer cette réservation ?')) {
       try {
-        await apiFetch(`/reservations?id=${id}`, { method: 'DELETE' });
+        await apiFetch(`/reservations/${id}`, { method: 'DELETE' });
         loadReservations();
       } catch (err) {
         alert('Erreur: ' + err.message);
