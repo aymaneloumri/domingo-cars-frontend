@@ -142,6 +142,8 @@ export default function Gestion() {
     setUploading(true);
     const formData = new FormData();
     formData.append('image', file);
+    console.log('API_BASE:', import.meta.env.VITE_API_URL);
+    console.log('Upload URL:', `${API_BASE}/api/admin/cars/upload`);
     try {
       const res = await fetch(`${API_BASE}/api/admin/cars/upload`, {
         method: 'POST',
