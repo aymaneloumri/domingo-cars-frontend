@@ -30,7 +30,8 @@ function Field({ label, required: req, children, className = '' }) {
   );
 }
 
-function emptyForm(nextNum = 'DCR-0001') {
+function emptyForm() {
+  const nextNum = 'Auto-généré';
   const now = new Date().toISOString().slice(0, 16);
   return {
     contract_number: nextNum,
@@ -82,15 +83,12 @@ export default function Contrat() {
   const [saveMsg, setSaveMsg] = useState('');
 
   useEffect(() => {
-    api.get('/admin/cars').then(r => setCars(r.data)).catch(() => {});
+    api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
     loadContracts();
-    api.get('/admin/contracts/next-number').then(r => {
-      setForm(f => ({ ...f, contract_number: r.data.number }));
-    }).catch(() => {});
   }, []);
 
   const loadContracts = () => {
-    api.get('/admin/contracts').then(r => setContracts(r.data)).catch(() => {});
+    api.get('/contracts').then(r => setContracts(r.data)).catch(() => {});
   };
 
   const set = (field) => (e) => {
@@ -151,16 +149,15 @@ export default function Contrat() {
         ['driver2_name','driver2_dob','driver2_phone','driver2_cin','driver2_cin_expiry','driver2_address','driver2_permis','driver2_permis_expiry'].forEach(k => payload[k] = null);
       }
       if (editId) {
-        await api.put(`/admin/contracts/${editId}`, payload);
+        await api.put('/contracts', { id: editId, ...payload });
         setSaveMsg('✅ Contrat mis à jour.');
       } else {
-        await api.post('/admin/contracts', payload);
+        await api.post('/contracts', payload);
         setSaveMsg('✅ Contrat créé avec succès.');
       }
       setEditId(null);
       loadContracts();
-      const next = await api.get('/admin/contracts/next-number');
-      setForm(emptyForm(next.data.number));
+      setForm(emptyForm());
     } catch (err) {
       setSaveMsg('❌ Erreur: ' + (err.response?.data?.error || 'Sauvegarde échouée.'));
     } finally {
@@ -170,7 +167,7 @@ export default function Contrat() {
 
   const handleEdit = async (id) => {
     try {
-      const r = await api.get(`/admin/contracts/${id}`);
+      const r = await api.get('/contracts', { params: { id } });
       const d = r.data;
       setEditId(id);
       setForm({ ...d, driver2_enabled: !!(d.driver2_name) });
@@ -180,17 +177,14 @@ export default function Contrat() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer ce contrat ?')) return;
-    await api.delete(`/admin/contracts/${id}`);
+    await api.delete('/contracts', { params: { id } });
     loadContracts();
-    if (editId === id) { setEditId(null); const r = await api.get('/admin/contracts/next-number'); setForm(emptyForm(r.data.number)); }
+    if (editId === id) { setEditId(null); setForm(emptyForm()); }
   };
 
-  const handleNewContract = async () => {
+  const handleNewContract = () => {
     setEditId(null);
-    try {
-      const r = await api.get('/admin/contracts/next-number');
-      setForm(emptyForm(r.data.number));
-    } catch { setForm(emptyForm()); }
+    setForm(emptyForm());
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

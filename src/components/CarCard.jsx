@@ -31,8 +31,8 @@ export default function CarCard({ car }) {
     setChecking(true);
     setAvailability(null);
     try {
-      const res = await axios.get(`${API_BASE}/api/cars/${car.id}/availability`, {
-        params: { start: startDate, end: endDate },
+      const res = await axios.get('/api/cars', {
+        params: { availability: 1, car_id: car.id, start: startDate, end: endDate },
       });
       setAvailability(res.data.available);
     } catch { setAvailability(null); }

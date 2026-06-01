@@ -114,9 +114,9 @@ export default function Gestion() {
 
   useEffect(() => { loadCars(); loadAnnouncements(); loadReservations(); }, []);
 
-  const loadCars         = () => api.get('/admin/cars').then(r => setCars(r.data)).catch(() => {});
-  const loadAnnouncements = () => api.get('/admin/announcements').then(r => setAnnouncements(r.data)).catch(() => {});
-  const loadReservations  = () => api.get('/admin/reservations').then(r => setReservations(r.data)).catch(() => {});
+  const loadCars         = () => api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
+  const loadAnnouncements = () => api.get('/announcements?admin=1').then(r => setAnnouncements(r.data)).catch(() => {});
+  const loadReservations  = () => api.get('/reservations').then(r => setReservations(r.data)).catch(() => {});
 
   // ── Photo upload ──
   const handleFile = async (file) => {
@@ -126,7 +126,7 @@ export default function Gestion() {
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const res = await fetch('/api/admin/cars/upload', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'x-admin-token': getToken() },
         body: formData,
@@ -170,21 +170,21 @@ export default function Gestion() {
   const saveCar = async (e) => {
     e.preventDefault();
     const payload = { ...carForm, image_url: imageUrl || '' };
-    if (editCar) await api.put(`/admin/cars/${editCar.id}`, payload);
-    else await api.post('/admin/cars', payload);
+    if (editCar) await api.put('/cars', { id: editCar.id, ...payload });
+    else await api.post('/cars', payload);
     setCarModal(false);
     loadCars();
   };
 
   const deleteCar = async (id) => {
     if (window.confirm('Supprimer cette voiture ?')) {
-      await api.delete(`/admin/cars/${id}`);
+      await api.delete('/cars', { params: { id } });
       loadCars();
     }
   };
 
   const toggleCarStatus = async (c) => {
-    await api.put(`/admin/cars/${c.id}`, { ...c, status: c.status === 'active' ? 'inactive' : 'active' });
+    await api.put('/cars', { ...c, status: c.status === 'active' ? 'inactive' : 'active' });
     loadCars();
   };
 
@@ -193,12 +193,12 @@ export default function Gestion() {
   const openAnnEdit = (a) => { setEditAnn(a); setAnnForm({ title: a.title, message: a.message, start_date: a.start_date, end_date: a.end_date, status: a.status }); setAnnModal(true); };
   const saveAnn = async (e) => {
     e.preventDefault();
-    if (editAnn) await api.put(`/admin/announcements/${editAnn.id}`, annForm);
-    else await api.post('/admin/announcements', annForm);
+    if (editAnn) await api.put('/announcements', { id: editAnn.id, ...annForm });
+    else await api.post('/announcements', annForm);
     setAnnModal(false); loadAnnouncements();
   };
-  const deleteAnn = async (id) => { if (window.confirm('Supprimer cette annonce ?')) { await api.delete(`/admin/announcements/${id}`); loadAnnouncements(); } };
-  const toggleAnnStatus = async (a) => { await api.put(`/admin/announcements/${a.id}`, { ...a, status: a.status === 'active' ? 'inactive' : 'active' }); loadAnnouncements(); };
+  const deleteAnn = async (id) => { if (window.confirm('Supprimer cette annonce ?')) { await api.delete('/announcements', { params: { id } }); loadAnnouncements(); } };
+  const toggleAnnStatus = async (a) => { await api.put('/announcements', { ...a, status: a.status === 'active' ? 'inactive' : 'active' }); loadAnnouncements(); };
 
   // ── RES handlers ──
   const openResAdd  = () => { setEditRes(null); setResConflict(''); setResForm({ car_id: cars[0]?.id || '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending' }); setResModal(true); };
@@ -210,14 +210,14 @@ export default function Gestion() {
       return;
     }
     try {
-      if (editRes) await api.put(`/admin/reservations/${editRes.id}`, resForm);
-      else await api.post('/admin/reservations', resForm);
+      if (editRes) await api.put('/reservations', { id: editRes.id, ...resForm });
+      else await api.post('/reservations', resForm);
       setResModal(false); loadReservations();
     } catch (err) {
       setResConflict(err.response?.data?.conflict ? '⚠️ Conflit: ces dates chevauchent une réservation existante.' : 'Erreur lors de la sauvegarde.');
     }
   };
-  const deleteRes = async (id) => { if (window.confirm('Supprimer cette réservation ?')) { await api.delete(`/admin/reservations/${id}`); loadReservations(); } };
+  const deleteRes = async (id) => { if (window.confirm('Supprimer cette réservation ?')) { await api.delete('/reservations', { params: { id } }); loadReservations(); } };
 
   const setC = (setter, field) => (e) => setter(prev => ({ ...prev, [field]: e.target.value }));
 

@@ -17,7 +17,7 @@ export default function Dashboard() {
 
   const loadCalendar = useCallback(async () => {
     try {
-      const r = await api.get('/admin/dashboard/calendar', { params: { month: monthStr } });
+      const r = await api.get('/dashboard', { params: { calendar: 1, month: monthStr } });
       setCars(r.data.cars);
       setReservations(r.data.reservations);
     } catch {}
@@ -25,7 +25,7 @@ export default function Dashboard() {
 
   const loadStats = useCallback(async () => {
     try {
-      const r = await api.get('/admin/dashboard/stats');
+      const r = await api.get('/dashboard', { params: { stats: 1 } });
       setStats(r.data);
     } catch {}
   }, []);
@@ -43,17 +43,17 @@ export default function Dashboard() {
   const goToday = () => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1); };
 
   const handleNewReservation = async (data) => {
-    await api.post('/admin/reservations', data);
+    await api.post('/reservations', data);
     loadCalendar(); loadStats();
   };
 
   const handleUpdateReservation = async (data) => {
-    await api.put(`/admin/reservations/${data.id}`, data);
+    await api.put('/reservations', data);
     loadCalendar(); loadStats();
   };
 
   const handleDeleteReservation = async (id) => {
-    await api.delete(`/admin/reservations/${id}`);
+    await api.delete('/reservations', { params: { id } });
     loadCalendar(); loadStats();
   };
 
