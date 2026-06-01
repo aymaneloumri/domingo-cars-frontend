@@ -143,7 +143,7 @@ export default function Gestion() {
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const res = await fetch(`${API_BASE}/api/upload`, {
+      const res = await fetch(`${API_BASE}/api/admin/cars/upload`, {
         method: 'POST',
         headers: { 'x-admin-token': getToken() },
         body: formData,

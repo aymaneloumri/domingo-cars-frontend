@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { setToken, isAuthenticated, removeToken } from '../utils/auth';
+import { API_BASE } from '../utils/config';
 import LogoCircle from '../components/LogoCircle';
 
 const NAV_CARDS = [
@@ -41,7 +42,7 @@ export default function Chef() {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('/api/auth', { password });
+      const res = await axios.post(`${API_BASE}/api/auth`, { password });
       setToken(res.data.token);
       setAuthed(true);
     } catch {
