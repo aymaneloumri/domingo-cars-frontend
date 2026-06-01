@@ -1,6 +1,12 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/cars", "destination": "/api/cars.js" },
+    { "source": "/api/announcements", "destination": "/api/announcements.js" },
+    { "source": "/api/reservations", "destination": "/api/reservations.js" },
+    { "source": "/api/dashboard", "destination": "/api/dashboard.js" },
+    { "source": "/api/contracts", "destination": "/api/contracts.js" },
+    { "source": "/api/upload", "destination": "/api/upload.js" },
+    { "source": "/api/auth", "destination": "/api/auth.js" },
+    { "source": "/api/init-db", "destination": "/api/init-db.js" }
   ]
 }
