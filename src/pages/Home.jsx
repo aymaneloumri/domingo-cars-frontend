@@ -373,6 +373,44 @@ export default function Home() {
               </a>
             ))}
           </div>
+
+          {/* Col 4 — Localisation */}
+          <div>
+            <div style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 11, color: '#FF6B00', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 14 }}>Notre Localisation</div>
+            <a
+              href="https://www.google.com/maps/search/Casablanca+Maroc/@33.5731,-7.5898,13z"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block', borderRadius: 8, overflow: 'hidden',
+                border: '1px solid rgba(255,107,0,0.3)',
+                maxWidth: 300, margin: '0 auto',
+                transition: 'border-color 0.3s',
+              }}
+            >
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d106376.63!2d-7.6899!3d33.5731!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xda7cd4778aa113b%3A0xb06c1d84f310fd3!2sCasablanca!5e0!3m2!1sfr!2sma!4v1"
+                width="300"
+                height="200"
+                style={{ border: 0, display: 'block', pointerEvents: 'none' }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Casablanca map"
+              />
+              <div style={{
+                background: '#FF6B00',
+                color: '#fff',
+                padding: '8px',
+                textAlign: 'center',
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: 12,
+                letterSpacing: 1,
+              }}>
+                📍 Voir sur Google Maps →
+              </div>
+            </a>
+          </div>
         </div>
 
         {/* Bottom bar */}
