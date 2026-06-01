@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
+import { API_BASE } from '../utils/config';
 import ChefHeader from '../components/ChefHeader';
 import GanttCalendar from '../components/GanttCalendar';
 
@@ -17,10 +18,14 @@ export default function Dashboard() {
 
   const loadCalendar = useCallback(async () => {
     try {
+      console.log('Dashboard API:', `${API_BASE}/api/dashboard`);
       const r = await api.get('/dashboard', { params: { calendar: 1, month: monthStr } });
+      console.log('Calendar data:', r.data);
       setCars(r.data.cars);
       setReservations(r.data.reservations);
-    } catch {}
+    } catch (err) {
+      console.error('Calendar load error:', err);
+    }
   }, [monthStr]);
 
   const loadStats = useCallback(async () => {
@@ -48,12 +53,12 @@ export default function Dashboard() {
   };
 
   const handleUpdateReservation = async (data) => {
-    await api.put('/reservations', data);
+    await api.put(`/reservations/${data.id}`, data);
     loadCalendar(); loadStats();
   };
 
   const handleDeleteReservation = async (id) => {
-    await api.delete('/reservations', { params: { id } });
+    await api.delete(`/reservations/${id}`);
     loadCalendar(); loadStats();
   };
 
