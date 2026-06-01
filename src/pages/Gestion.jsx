@@ -2,9 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getToken } from '../utils/auth';
 import { imgUrl, API_BASE } from '../utils/config';
 import ChefHeader from '../components/ChefHeader';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
-const TABS = ['Voitures', 'Annonces', 'Réservations'];
+const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport'];
 const CATEGORIES = ['Berline', 'Citadine', 'SUV', 'Utilitaire'];
+
+const MONTH_NAMES_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
 const statusBadge = (s) => ({
   active:    'text-green-400 bg-green-400/10 border-green-400/30',
@@ -108,8 +113,14 @@ export default function Gestion() {
   const [reservations, setReservations] = useState([]);
   const [resModal, setResModal] = useState(false);
   const [editRes, setEditRes] = useState(null);
-  const [resForm, setResForm] = useState({ car_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending' });
+  const [resForm, setResForm] = useState({ car_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0 });
   const [resConflict, setResConflict] = useState('');
+
+  // ── RAPPORT ──
+  const nowDate = new Date();
+  const [rapportMonth, setRapportMonth] = useState(`${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`);
+  const [rapportData, setRapportData] = useState(null);
+  const [rapportLoading, setRapportLoading] = useState(false);
 
   useEffect(() => { loadCars(); loadAnnouncements(); loadReservations(); }, []);
 
@@ -131,9 +142,28 @@ export default function Gestion() {
     return res.json();
   };
 
-  const loadCars         = () => apiFetch('/cars/admin/all').then(setCars).catch(() => {});
+  const loadCars          = () => apiFetch('/cars/admin/all').then(setCars).catch(() => {});
   const loadAnnouncements = () => apiFetch('/announcements/admin/all').then(setAnnouncements).catch(() => {});
   const loadReservations  = () => apiFetch('/reservations').then(setReservations).catch(() => {});
+
+  const calcPricing = (start, end, ppj) => {
+    if (!start || !end) return { nb_jours: 0, prix_total: 0 };
+    const days = Math.ceil((new Date(end + 'T00:00:00') - new Date(start + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+    return { nb_jours: days > 0 ? days : 0, prix_total: days > 0 ? days * (parseFloat(ppj) || 0) : 0 };
+  };
+
+  const loadRapport = async () => {
+    setRapportLoading(true);
+    setRapportData(null);
+    try {
+      const data = await apiFetch(`/reservations/monthly-report?month=${rapportMonth}`);
+      setRapportData(data);
+    } catch (err) {
+      alert('Erreur lors du chargement du rapport: ' + err.message);
+    } finally {
+      setRapportLoading(false);
+    }
+  };
 
   // ── Photo upload ──
   const handleFile = async (file) => {
@@ -254,8 +284,18 @@ export default function Gestion() {
   };
 
   // ── RES handlers ──
-  const openResAdd  = () => { setEditRes(null); setResConflict(''); setResForm({ car_id: cars[0]?.id || '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending' }); setResModal(true); };
-  const openResEdit = (r) => { setEditRes(r); setResConflict(''); setResForm({ car_id: r.car_id, client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, status: r.status }); setResModal(true); };
+  const openResAdd = () => {
+    const firstCar = cars[0];
+    setEditRes(null); setResConflict('');
+    setResForm({ car_id: firstCar?.id || '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0 });
+    setResModal(true);
+  };
+
+  const openResEdit = (r) => {
+    setEditRes(r); setResConflict('');
+    setResForm({ car_id: r.car_id, client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0 });
+    setResModal(true);
+  };
 
   const saveRes = async (e) => {
     e.preventDefault(); setResConflict('');
@@ -282,6 +322,79 @@ export default function Gestion() {
         alert('Erreur: ' + err.message);
       }
     }
+  };
+
+  // ── PDF export ──
+  const exportPDF = () => {
+    if (!rapportData) return;
+    const [y, m] = rapportMonth.split('-');
+    const monthLabel = `${MONTH_NAMES_FR[parseInt(m) - 1]} ${y}`;
+
+    const tableBody = [
+      [
+        { text: 'Voiture', style: 'tableHeader' },
+        { text: 'Réservations', style: 'tableHeader' },
+        { text: 'Jours', style: 'tableHeader' },
+        { text: 'Total (MAD)', style: 'tableHeader' },
+      ],
+      ...rapportData.cars.map(c => [
+        c.car_name,
+        String(c.reservations_count),
+        `${c.total_jours}j`,
+        { text: `${c.total_revenue.toLocaleString('fr-MA')} MAD`, color: '#FF6B00', bold: true },
+      ]),
+    ];
+
+    const mostRented = rapportData.cars.length
+      ? rapportData.cars.reduce((a, b) => a.reservations_count >= b.reservations_count ? a : b)
+      : null;
+
+    const docDef = {
+      pageSize: 'A4',
+      pageMargins: [40, 60, 40, 60],
+      background: [{ canvas: [{ type: 'rect', x: 0, y: 0, w: 595, h: 842, color: '#0A0A0A' }] }],
+      content: [
+        { text: 'DOMINGO CARS LUXURY RENT', style: 'brand' },
+        { text: `RAPPORT MENSUEL — ${monthLabel}`, style: 'title' },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#FF6B00' }], margin: [0, 8, 0, 16] },
+        {
+          columns: [
+            { text: [`Total revenus\n`, { text: `${rapportData.total_revenue.toLocaleString('fr-MA')} MAD`, style: 'bigStat' }], style: 'statBox' },
+            { text: [`Réservations\n`, { text: String(rapportData.total_reservations), style: 'bigStat' }], style: 'statBox' },
+            { text: [`Jours loués\n`, { text: String(rapportData.total_jours), style: 'bigStat' }], style: 'statBox' },
+          ],
+          margin: [0, 0, 0, 20],
+        },
+        { text: 'DÉTAIL PAR VOITURE', style: 'sectionTitle' },
+        {
+          table: { headerRows: 1, widths: ['*', 'auto', 'auto', 'auto'], body: tableBody },
+          layout: {
+            fillColor: (i) => i === 0 ? '#1a1a1a' : i % 2 === 0 ? '#111' : '#0d0d0d',
+            hLineColor: () => '#222',
+            vLineColor: () => '#222',
+          },
+          margin: [0, 8, 0, 20],
+        },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#333' }], margin: [0, 0, 0, 12] },
+        mostRented ? { text: `Voiture la plus louée: ${mostRented.car_name} (${mostRented.reservations_count} rés.)`, style: 'footer' } : {},
+        { text: `TOTAL GÉNÉRAL: ${rapportData.total_revenue.toLocaleString('fr-MA')} MAD`, style: 'totalLine' },
+        { text: `Généré le ${new Date().toLocaleDateString('fr-MA')} — Domingo Cars Luxury Rent, Casablanca`, style: 'meta' },
+      ],
+      styles: {
+        brand:        { fontSize: 10, color: '#FF6B00', letterSpacing: 4, alignment: 'center', margin: [0, 0, 0, 4] },
+        title:        { fontSize: 18, bold: true, color: '#ffffff', alignment: 'center', margin: [0, 0, 0, 4] },
+        sectionTitle: { fontSize: 10, color: '#FF6B00', bold: true, letterSpacing: 2, margin: [0, 0, 0, 4] },
+        tableHeader:  { fontSize: 9, color: '#FF6B00', bold: true },
+        bigStat:      { fontSize: 20, color: '#FF6B00', bold: true },
+        statBox:      { fontSize: 10, color: '#888', alignment: 'center' },
+        footer:       { fontSize: 10, color: '#888', margin: [0, 0, 0, 6] },
+        totalLine:    { fontSize: 13, bold: true, color: '#FF6B00', margin: [0, 0, 0, 8] },
+        meta:         { fontSize: 8, color: '#444', margin: [0, 16, 0, 0], alignment: 'center' },
+      },
+      defaultStyle: { color: '#ccc', fontSize: 10 },
+    };
+
+    pdfMake.createPdf(docDef).download(`rapport-${rapportMonth}.pdf`);
   };
 
   const setC = (setter, field) => (e) => setter(prev => ({ ...prev, [field]: e.target.value }));
@@ -470,7 +583,7 @@ export default function Gestion() {
               <table className="w-full">
                 <thead className="bg-[#111] border-b border-[#222]">
                   <tr>
-                    {['Voiture','Client','Téléphone','Début','Fin','Statut','Actions'].map(h => (
+                    {['Voiture','Client','Téléphone','Début','Fin','Prix/j','Jours','Total','Statut','Actions'].map(h => (
                       <th key={h} className="text-left text-xs text-gray-400 font-body uppercase tracking-wider px-4 py-3">{h}</th>
                     ))}
                   </tr>
@@ -486,6 +599,9 @@ export default function Gestion() {
                       </td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.start_date}</td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.end_date}</td>
+                      <td className="px-4 py-3 font-body text-xs text-gray-400">{r.prix_par_jour ? `${r.prix_par_jour} MAD` : '–'}</td>
+                      <td className="px-4 py-3 font-body text-xs text-gray-400">{r.nb_jours ? `${r.nb_jours}j` : '–'}</td>
+                      <td className="px-4 py-3 font-body text-xs text-[#FF6B00] font-semibold">{r.prix_total ? `${r.prix_total} MAD` : '–'}</td>
                       <td className="px-4 py-3"><span className={`text-xs font-body px-2 py-0.5 rounded border ${statusBadge(r.status)}`}>{statusLabel(r.status)}</span></td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1.5">
@@ -503,7 +619,13 @@ export default function Gestion() {
               <Modal title={editRes ? 'Modifier la réservation' : 'Ajouter une réservation'} onClose={() => setResModal(false)}>
                 <form onSubmit={saveRes} className="space-y-4">
                   <Field label="Voiture *">
-                    <select required className={selectCls} value={resForm.car_id} onChange={setC(setResForm, 'car_id')}>
+                    <select required className={selectCls} value={resForm.car_id}
+                      onChange={e => {
+                        const car = cars.find(c => c.id === parseInt(e.target.value));
+                        const ppj = car?.price_per_day || 0;
+                        const pricing = calcPricing(resForm.start_date, resForm.end_date, ppj);
+                        setResForm(p => ({ ...p, car_id: parseInt(e.target.value), prix_par_jour: ppj, ...pricing }));
+                      }}>
                       <option value="">Sélectionner une voiture</option>
                       {cars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
@@ -514,12 +636,38 @@ export default function Gestion() {
                     <Field label="Date début *">
                       <input required type="date" className={inputCls} value={resForm.start_date}
                         min={new Date().toISOString().split('T')[0]}
-                        onChange={e => { setResForm(p => ({ ...p, start_date: e.target.value, end_date: '' })); setResConflict(''); }} />
+                        onChange={e => {
+                          const s = e.target.value;
+                          const pricing = calcPricing(s, '', resForm.prix_par_jour);
+                          setResForm(p => ({ ...p, start_date: s, end_date: '', ...pricing }));
+                          setResConflict('');
+                        }} />
                     </Field>
                     <Field label="Date fin *">
                       <input required type="date" className={inputCls} value={resForm.end_date}
-                        min={(() => { if (!resForm.start_date) return new Date().toISOString().split('T')[0]; const d = new Date(resForm.start_date + 'T00:00:00'); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; })()}
-                        onChange={e => { setResForm(p => ({ ...p, end_date: e.target.value })); setResConflict(''); }} />
+                        min={(() => { if (!resForm.start_date) return new Date().toISOString().split('T')[0]; const d = new Date(resForm.start_date + 'T00:00:00'); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}
+                        onChange={e => {
+                          const d = e.target.value;
+                          const pricing = calcPricing(resForm.start_date, d, resForm.prix_par_jour);
+                          setResForm(p => ({ ...p, end_date: d, ...pricing }));
+                          setResConflict('');
+                        }} />
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Field label="Prix/jour (MAD)">
+                      <input type="number" className={inputCls} value={resForm.prix_par_jour}
+                        onChange={e => {
+                          const ppj = parseFloat(e.target.value) || 0;
+                          const pricing = calcPricing(resForm.start_date, resForm.end_date, ppj);
+                          setResForm(p => ({ ...p, prix_par_jour: ppj, ...pricing }));
+                        }} />
+                    </Field>
+                    <Field label="Nb jours">
+                      <div className={inputCls + ' text-gray-400 select-none'}>{resForm.nb_jours || 0}</div>
+                    </Field>
+                    <Field label="Total (MAD)">
+                      <div className={inputCls + ' text-[#FF6B00] font-semibold select-none'}>{resForm.prix_total || 0}</div>
                     </Field>
                   </div>
                   <Field label="Statut">
@@ -536,6 +684,124 @@ export default function Gestion() {
                   </div>
                 </form>
               </Modal>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB 3: RAPPORT ── */}
+        {tab === 3 && (
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <h2 className="font-heading text-2xl">RAPPORT MENSUEL</h2>
+              <div className="flex items-center gap-3">
+                <input
+                  type="month"
+                  value={rapportMonth}
+                  onChange={e => { setRapportMonth(e.target.value); setRapportData(null); }}
+                  className={inputCls + ' w-44'}
+                />
+                <button onClick={loadRapport} disabled={rapportLoading}
+                  className="bg-[#FF6B00] text-white font-body text-sm px-5 py-2 rounded hover:bg-orange-500 disabled:opacity-50 transition-colors">
+                  {rapportLoading ? 'Chargement…' : 'Générer le rapport'}
+                </button>
+                {rapportData && (
+                  <button onClick={exportPDF}
+                    className="bg-[#111] border border-[#FF6B00] text-[#FF6B00] font-body text-sm px-5 py-2 rounded hover:bg-[#FF6B00] hover:text-white transition-colors">
+                    📄 Exporter PDF
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {rapportData && (() => {
+              const [y, m] = rapportMonth.split('-');
+              const monthLabel = `${MONTH_NAMES_FR[parseInt(m) - 1]} ${y}`;
+              const mostRented = rapportData.cars.length
+                ? rapportData.cars.reduce((a, b) => a.reservations_count >= b.reservations_count ? a : b)
+                : null;
+              const totalDaysInMonth = new Date(parseInt(y), parseInt(m), 0).getDate();
+              const maxPossibleDays = cars.length * totalDaysInMonth;
+              const occupancyRate = maxPossibleDays > 0
+                ? Math.round((rapportData.total_jours / maxPossibleDays) * 100)
+                : 0;
+
+              return (
+                <div className="space-y-6">
+                  {/* Header card */}
+                  <div className="bg-[#111] border border-[#FF6B00]/30 rounded-lg p-6">
+                    <div className="font-heading text-xl mb-1">RAPPORT MENSUEL — {monthLabel}</div>
+                    <div className="text-3xl font-heading text-[#FF6B00]">
+                      {rapportData.total_revenue.toLocaleString('fr-MA')} MAD
+                    </div>
+                    <div className="text-xs text-gray-400 font-body mt-1">Total revenus du mois</div>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { label: 'Réservations', value: rapportData.total_reservations, color: 'text-blue-400' },
+                      { label: 'Jours loués', value: rapportData.total_jours, color: 'text-purple-400' },
+                      { label: "Taux d'occupation", value: `${occupancyRate}%`, color: 'text-green-400' },
+                    ].map(s => (
+                      <div key={s.label} className="bg-[#111] border border-[#222] rounded-lg p-4 text-center">
+                        <div className={`font-heading text-2xl ${s.color}`}>{s.value}</div>
+                        <div className="text-xs text-gray-400 font-body mt-1">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Per-car table */}
+                  {rapportData.cars.length > 0 ? (
+                    <div className="overflow-x-auto rounded-lg border border-[#222]">
+                      <table className="w-full">
+                        <thead className="bg-[#111] border-b border-[#222]">
+                          <tr>
+                            {['Voiture','Réservations','Jours','Total MAD'].map(h => (
+                              <th key={h} className="text-left text-xs text-gray-400 font-body uppercase tracking-wider px-4 py-3">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rapportData.cars.map((c, i) => (
+                            <tr key={i} className="border-b border-[#1a1a1a] hover:bg-[#111] transition-colors">
+                              <td className="px-4 py-3 font-body text-sm font-medium">{c.car_name}</td>
+                              <td className="px-4 py-3 font-body text-sm text-gray-400">{c.reservations_count}</td>
+                              <td className="px-4 py-3 font-body text-sm text-gray-400">{c.total_jours}j</td>
+                              <td className="px-4 py-3 font-body text-sm text-[#FF6B00] font-semibold">{c.total_revenue.toLocaleString('fr-MA')} MAD</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500 font-body">Aucune réservation ce mois.</div>
+                  )}
+
+                  {/* Footer summary */}
+                  <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 font-body text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">TOTAL GÉNÉRAL</span>
+                      <span className="text-[#FF6B00] font-semibold text-base">{rapportData.total_revenue.toLocaleString('fr-MA')} MAD</span>
+                    </div>
+                    {mostRented && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Voiture la plus louée</span>
+                        <span className="text-white">{mostRented.car_name} ({mostRented.reservations_count} rés.)</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Taux d'occupation</span>
+                      <span className="text-green-400">{occupancyRate}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {!rapportData && !rapportLoading && (
+              <div className="text-center py-20 text-gray-500 font-body">
+                Sélectionnez un mois et cliquez sur "Générer le rapport".
+              </div>
             )}
           </div>
         )}
