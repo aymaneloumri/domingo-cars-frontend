@@ -35,7 +35,7 @@ function CarPreviewCard({ car }) {
     setChecking(true);
     setStatus(null);
     try {
-      const { data } = await axios.get(`/api/cars/${car.id}/availability`, {
+      const { data } = await axios.get(`${API_BASE}/api/cars/${car.id}/availability`, {
         params: { start: startDate, end: endDate },
       });
       setStatus(data.available);

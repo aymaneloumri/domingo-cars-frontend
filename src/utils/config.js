@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_BASE = 'https://domingo-cars-backend-production-288e.up.railway.app';
 
 export const imgUrl = (url) => {
   if (!url) return null;
