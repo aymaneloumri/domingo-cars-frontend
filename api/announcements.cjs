@@ -1,4 +1,4 @@
-const pool = require('./db');
+const pool = require('./db.cjs');
 const auth = (req) =>
   req.headers['x-admin-token'] === (process.env.ADMIN_PASSWORD || 'domingo2024');
 

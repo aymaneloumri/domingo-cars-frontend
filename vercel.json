@@ -1,12 +1,12 @@
 {
   "rewrites": [
-    { "source": "/api/cars", "destination": "/api/cars.js" },
-    { "source": "/api/announcements", "destination": "/api/announcements.js" },
-    { "source": "/api/reservations", "destination": "/api/reservations.js" },
-    { "source": "/api/dashboard", "destination": "/api/dashboard.js" },
-    { "source": "/api/contracts", "destination": "/api/contracts.js" },
-    { "source": "/api/upload", "destination": "/api/upload.js" },
-    { "source": "/api/auth", "destination": "/api/auth.js" },
-    { "source": "/api/init-db", "destination": "/api/init-db.js" }
+    { "source": "/api/cars", "destination": "/api/cars.cjs" },
+    { "source": "/api/announcements", "destination": "/api/announcements.cjs" },
+    { "source": "/api/reservations", "destination": "/api/reservations.cjs" },
+    { "source": "/api/dashboard", "destination": "/api/dashboard.cjs" },
+    { "source": "/api/contracts", "destination": "/api/contracts.cjs" },
+    { "source": "/api/upload", "destination": "/api/upload.cjs" },
+    { "source": "/api/auth", "destination": "/api/auth.cjs" },
+    { "source": "/api/init-db", "destination": "/api/init-db.cjs" }
   ]
 }

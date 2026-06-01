@@ -1,4 +1,4 @@
-const pool = require('./db');
+const pool = require('./db.cjs');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
