@@ -2,16 +2,16 @@
   "version": 2,
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
+    { "src": "package.json", "use": "@vercel/static-build",
+      "config": { "distDir": "dist" } }
   ],
   "routes": [
-    { "src": "/api/cars/availability", "dest": "/api/cars.js" },
     { "src": "/api/cars(.*)", "dest": "/api/cars.js" },
     { "src": "/api/announcements(.*)", "dest": "/api/announcements.js" },
     { "src": "/api/reservations(.*)", "dest": "/api/reservations.js" },
     { "src": "/api/dashboard(.*)", "dest": "/api/dashboard.js" },
     { "src": "/api/contracts(.*)", "dest": "/api/contracts.js" },
-    { "src": "/api/upload", "dest": "/api/upload.js" },
+    { "src": "/api/upload(.*)", "dest": "/api/upload.js" },
     { "src": "/api/auth", "dest": "/api/auth.js" },
     { "src": "/api/init-db", "dest": "/api/init-db.js" },
     { "src": "/(.*)", "dest": "/index.html" }
