@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import api from '../utils/api';
 import { getToken } from '../utils/auth';
 import { imgUrl, API_BASE } from '../utils/config';
 import ChefHeader from '../components/ChefHeader';
@@ -114,9 +113,27 @@ export default function Gestion() {
 
   useEffect(() => { loadCars(); loadAnnouncements(); loadReservations(); }, []);
 
-  const loadCars         = () => api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
-  const loadAnnouncements = () => api.get('/announcements?admin=1').then(r => setAnnouncements(r.data)).catch(() => {});
-  const loadReservations  = () => api.get('/reservations').then(r => setReservations(r.data)).catch(() => {});
+  // ── Shared fetch helper ──
+  const apiFetch = async (path, options = {}) => {
+    const res = await fetch(`${API_BASE}/api${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': getToken(),
+        ...(options.headers || {}),
+      },
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('API error:', res.status, err);
+      throw new Error(err || res.statusText);
+    }
+    return res.json();
+  };
+
+  const loadCars         = () => apiFetch('/cars?admin=1').then(setCars).catch(() => {});
+  const loadAnnouncements = () => apiFetch('/announcements?admin=1').then(setAnnouncements).catch(() => {});
+  const loadReservations  = () => apiFetch('/reservations').then(setReservations).catch(() => {});
 
   // ── Photo upload ──
   const handleFile = async (file) => {
@@ -126,11 +143,12 @@ export default function Gestion() {
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         headers: { 'x-admin-token': getToken() },
         body: formData,
       });
+      if (!res.ok) { console.error('Upload error:', await res.text()); return; }
       const data = await res.json();
       setImageUrl(data.url);
     } catch (err) {
@@ -157,7 +175,6 @@ export default function Gestion() {
   const openCarEdit = (c) => {
     setEditCar(c);
     setCarForm({ name: c.name, category: c.category, price_per_day: c.price_per_day, description: c.description || '', matricule: c.matricule || '', status: c.status });
-    // If car has an image, show it as preview
     if (c.image_url) {
       setImageUrl(c.image_url);
       setPreviewUrl(imgUrl(c.image_url));
@@ -170,39 +187,76 @@ export default function Gestion() {
   const saveCar = async (e) => {
     e.preventDefault();
     const payload = { ...carForm, image_url: imageUrl || '' };
-    if (editCar) await api.put('/cars', { id: editCar.id, ...payload });
-    else await api.post('/cars', payload);
-    setCarModal(false);
-    loadCars();
+    try {
+      if (editCar) await apiFetch('/cars', { method: 'PUT', body: JSON.stringify({ id: editCar.id, ...payload }) });
+      else await apiFetch('/cars', { method: 'POST', body: JSON.stringify(payload) });
+      setCarModal(false);
+      loadCars();
+    } catch (err) {
+      alert('Erreur: ' + err.message);
+    }
   };
 
   const deleteCar = async (id) => {
     if (window.confirm('Supprimer cette voiture ?')) {
-      await api.delete('/cars', { params: { id } });
-      loadCars();
+      try {
+        await apiFetch(`/cars?id=${id}`, { method: 'DELETE' });
+        loadCars();
+      } catch (err) {
+        alert('Erreur: ' + err.message);
+      }
     }
   };
 
   const toggleCarStatus = async (c) => {
-    await api.put('/cars', { ...c, status: c.status === 'active' ? 'inactive' : 'active' });
-    loadCars();
+    try {
+      await apiFetch('/cars', { method: 'PUT', body: JSON.stringify({ ...c, status: c.status === 'active' ? 'inactive' : 'active' }) });
+      loadCars();
+    } catch (err) {
+      console.error('Toggle status error:', err);
+    }
   };
 
   // ── ANN handlers ──
   const openAnnAdd  = () => { setEditAnn(null); setAnnForm({ title: '', message: '', start_date: '', end_date: '', status: 'active' }); setAnnModal(true); };
   const openAnnEdit = (a) => { setEditAnn(a); setAnnForm({ title: a.title, message: a.message, start_date: a.start_date, end_date: a.end_date, status: a.status }); setAnnModal(true); };
+
   const saveAnn = async (e) => {
     e.preventDefault();
-    if (editAnn) await api.put('/announcements', { id: editAnn.id, ...annForm });
-    else await api.post('/announcements', annForm);
-    setAnnModal(false); loadAnnouncements();
+    try {
+      if (editAnn) await apiFetch('/announcements', { method: 'PUT', body: JSON.stringify({ id: editAnn.id, ...annForm }) });
+      else await apiFetch('/announcements', { method: 'POST', body: JSON.stringify(annForm) });
+      setAnnModal(false);
+      loadAnnouncements();
+    } catch (err) {
+      alert('Erreur: ' + err.message);
+    }
   };
-  const deleteAnn = async (id) => { if (window.confirm('Supprimer cette annonce ?')) { await api.delete('/announcements', { params: { id } }); loadAnnouncements(); } };
-  const toggleAnnStatus = async (a) => { await api.put('/announcements', { ...a, status: a.status === 'active' ? 'inactive' : 'active' }); loadAnnouncements(); };
+
+  const deleteAnn = async (id) => {
+    if (window.confirm('Supprimer cette annonce ?')) {
+      try {
+        await apiFetch(`/announcements?id=${id}`, { method: 'DELETE' });
+        loadAnnouncements();
+      } catch (err) {
+        alert('Erreur: ' + err.message);
+      }
+    }
+  };
+
+  const toggleAnnStatus = async (a) => {
+    try {
+      await apiFetch('/announcements', { method: 'PUT', body: JSON.stringify({ ...a, status: a.status === 'active' ? 'inactive' : 'active' }) });
+      loadAnnouncements();
+    } catch (err) {
+      console.error('Toggle ann status error:', err);
+    }
+  };
 
   // ── RES handlers ──
   const openResAdd  = () => { setEditRes(null); setResConflict(''); setResForm({ car_id: cars[0]?.id || '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending' }); setResModal(true); };
   const openResEdit = (r) => { setEditRes(r); setResConflict(''); setResForm({ car_id: r.car_id, client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, status: r.status }); setResModal(true); };
+
   const saveRes = async (e) => {
     e.preventDefault(); setResConflict('');
     if (resForm.start_date && resForm.end_date && new Date(resForm.end_date) <= new Date(resForm.start_date)) {
@@ -210,14 +264,25 @@ export default function Gestion() {
       return;
     }
     try {
-      if (editRes) await api.put('/reservations', { id: editRes.id, ...resForm });
-      else await api.post('/reservations', resForm);
-      setResModal(false); loadReservations();
+      if (editRes) await apiFetch('/reservations', { method: 'PUT', body: JSON.stringify({ id: editRes.id, ...resForm }) });
+      else await apiFetch('/reservations', { method: 'POST', body: JSON.stringify(resForm) });
+      setResModal(false);
+      loadReservations();
     } catch (err) {
-      setResConflict(err.response?.data?.conflict ? '⚠️ Conflit: ces dates chevauchent une réservation existante.' : 'Erreur lors de la sauvegarde.');
+      setResConflict(err.message.includes('Conflit') ? '⚠️ Conflit: ces dates chevauchent une réservation existante.' : 'Erreur: ' + err.message);
     }
   };
-  const deleteRes = async (id) => { if (window.confirm('Supprimer cette réservation ?')) { await api.delete('/reservations', { params: { id } }); loadReservations(); } };
+
+  const deleteRes = async (id) => {
+    if (window.confirm('Supprimer cette réservation ?')) {
+      try {
+        await apiFetch(`/reservations?id=${id}`, { method: 'DELETE' });
+        loadReservations();
+      } catch (err) {
+        alert('Erreur: ' + err.message);
+      }
+    }
+  };
 
   const setC = (setter, field) => (e) => setter(prev => ({ ...prev, [field]: e.target.value }));
 
