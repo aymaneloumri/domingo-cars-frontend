@@ -95,23 +95,11 @@ export default function Facture() {
           columns: [
             {
               stack: [
-                { text: 'DOMINGO CARS LUXURY RENT', style: 'companyName' },
-                { text: 'R.C.: 710225 | ICE: 003820019000072', style: 'companyInfo' },
-                { text: 'I.F.: 37601415', style: 'companyInfo' },
-                { text: 'Tél: 07 01 05 08 09', style: 'companyInfo' },
-                { text: 'Email: Domingocarsrent@gmail.com', style: 'companyInfo' },
-                { text: 'Instagram: @Domingocarsrent', style: 'companyInfo' },
-              ],
-              width: '*',
-            },
-            {
-              stack: [
                 { text: 'FACTURE', style: 'invoiceTitle' },
                 { text: `N°: ${invoiceNumber}`, style: 'invoiceNumber' },
-                { text: `Date: ${formatDate(invoiceDate)}`, style: 'invoiceInfo' },
+                { text: `Date: ${invoiceDate}`, style: 'invoiceInfo' },
               ],
-              width: 'auto',
-              alignment: 'right',
+              width: '*',
             },
           ],
           margin: [0, 0, 0, 20],
@@ -203,12 +191,29 @@ export default function Facture() {
             margin: [0, 0, 0, 24],
           };
         })(),
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 0, 0, 10] },
-        { text: 'Domingo Cars Luxury Rent — Casablanca, Maroc — +212 701 050 809', style: 'footer', alignment: 'center' },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 20, 0, 12] },
+        {
+          columns: [
+            {
+              stack: [
+                { text: 'DOMINGO CARS LUXURY RENT', style: 'footerCompany' },
+                { text: 'R.C.: 710225 | ICE: 003820019000072 | I.F.: 37601415', style: 'footerInfo' },
+              ],
+              width: '*',
+            },
+            {
+              stack: [
+                { text: 'Tél: +212 701 050 809', style: 'footerInfo', alignment: 'right' },
+                { text: 'Email: Domingocarsrent@gmail.com', style: 'footerInfo', alignment: 'right' },
+                { text: 'Instagram: @Domingocarsrent', style: 'footerInfo', alignment: 'right' },
+                { text: 'Casablanca, Maroc', style: 'footerInfo', alignment: 'right' },
+              ],
+              width: 'auto',
+            },
+          ],
+        },
       ],
       styles: {
-        companyName:  { fontSize: 16, bold: true, color: '#0a0a0a', margin: [0, 0, 0, 4] },
-        companyInfo:  { fontSize: 9, color: '#666', margin: [0, 1, 0, 0] },
         invoiceTitle: { fontSize: 28, bold: true, color: '#FF6B00', margin: [0, 0, 0, 4] },
         invoiceNumber:{ fontSize: 14, bold: true, color: '#333', margin: [0, 0, 0, 4] },
         invoiceInfo:  { fontSize: 10, color: '#666' },
@@ -219,9 +224,8 @@ export default function Facture() {
         tableCell:    { fontSize: 11, color: '#333', margin: [6, 6, 6, 6] },
         totalLabel:   { fontSize: 12, bold: true, color: '#fff', margin: [6, 8, 6, 8] },
         totalAmount:  { fontSize: 14, bold: true, color: '#FF6B00', margin: [6, 8, 6, 8], alignment: 'right' },
-        signatureLabel:{ fontSize: 11, color: '#666', bold: true },
-        signatureLine: { fontSize: 11, color: '#999' },
-        footer:       { fontSize: 9, color: '#888' },
+        footerCompany: { fontSize: 11, bold: true, color: '#FF6B00', margin: [0, 0, 0, 4] },
+        footerInfo:    { fontSize: 9, color: '#888', margin: [0, 1, 0, 0] },
       },
       defaultStyle: { font: 'Roboto' },
     };
