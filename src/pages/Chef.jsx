@@ -24,6 +24,12 @@ const NAV_CARDS = [
     desc: 'Créer & gérer les contrats PDF',
     path: '/chef/contrat',
   },
+  {
+    icon: '🧾',
+    title: 'FACTURATION',
+    desc: 'Générer une facture client',
+    path: '/chef/facture',
+  },
 ];
 
 export default function Chef() {

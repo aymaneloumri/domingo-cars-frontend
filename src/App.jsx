@@ -8,6 +8,7 @@ import Chef from './pages/Chef';
 import Gestion from './pages/Gestion';
 import Dashboard from './pages/Dashboard';
 import Contrat from './pages/Contrat';
+import Facture from './pages/Facture';
 
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) return <Navigate to="/chef" replace />;
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/chef/gestion" element={<ProtectedRoute><Gestion /></ProtectedRoute>} />
         <Route path="/chef/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/chef/contrat" element={<ProtectedRoute><Contrat /></ProtectedRoute>} />
+        <Route path="/chef/facture" element={<ProtectedRoute><Facture /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
