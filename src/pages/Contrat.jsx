@@ -86,6 +86,9 @@ export default function Contrat() {
   const [saveMsg, setSaveMsg] = useState('');
   const [clientReservations, setClientReservations] = useState([]);
   const [showReservationPicker, setShowReservationPicker] = useState(false);
+  const [emailList, setEmailList] = useState(['']);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
@@ -140,7 +143,36 @@ export default function Contrat() {
     });
   };
 
+  const handleSendEmail = async () => {
+    const validEmails = emailList.filter(e => e && e.includes('@'));
+    if (validEmails.length === 0) {
+      alert('Veuillez saisir au moins une adresse email valide');
+      return;
+    }
+    setSendingEmail(true);
+    setEmailSent(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/contracts/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': getToken() },
+        body: JSON.stringify({ emails: validEmails, contract: form }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEmailSent(true);
+        setTimeout(() => setEmailSent(false), 5000);
+      } else {
+        alert('Erreur: ' + (data.error || 'Envoi échoué'));
+      }
+    } catch (err) {
+      alert('Erreur réseau: ' + err.message);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const handleClientSelect = async (client) => {
+    if (client.email) setEmailList([client.email]);
     setForm(prev => ({
       ...prev,
       client_id: client.id,
@@ -526,6 +558,49 @@ export default function Contrat() {
               className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6B00] text-white text-sm font-body font-semibold rounded hover:bg-orange-500 transition-colors disabled:opacity-50 ml-auto">
               {saving ? 'Enregistrement...' : editId ? '💾 Mettre à jour' : '💾 Enregistrer'}
             </button>
+          </div>
+
+          {/* EMAIL SENDING SECTION */}
+          <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(255,107,0,0.03)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '8px' }}>
+            <div style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '14px', fontFamily: 'DM Sans', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📧 Envoyer le contrat par email
+            </div>
+
+            {emailList.map((email, index) => (
+              <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { const n = [...emailList]; n[index] = e.target.value; setEmailList(n); }}
+                  placeholder={`Email ${index + 1} (ex: client@email.com)`}
+                  style={{ flex: 1, background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '10px 14px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '13px', outline: 'none' }}
+                />
+                {emailList.length > 1 && (
+                  <button onClick={() => setEmailList(emailList.filter((_, i) => i !== index))}
+                    style={{ background: 'transparent', border: '0.5px solid #3a1a1a', color: '#e24b4a', padding: '0 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}>
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {emailList.length < 4 && (
+              <button onClick={() => setEmailList([...emailList, ''])}
+                style={{ background: 'transparent', border: '0.5px dashed #2a2010', color: '#5a4a2a', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontFamily: 'DM Sans', width: '100%', marginBottom: '14px' }}>
+                + Ajouter un email
+              </button>
+            )}
+
+            <button onClick={handleSendEmail} disabled={sendingEmail || emailList.every(e => !e)}
+              style={{ background: sendingEmail ? '#333' : '#FF6B00', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: sendingEmail ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans', fontSize: '13px', letterSpacing: '1px', width: '100%', transition: 'background 0.2s' }}>
+              {sendingEmail ? '⏳ Envoi en cours...' : '📧 Envoyer le contrat'}
+            </button>
+
+            {emailSent && (
+              <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(76,175,80,0.1)', border: '0.5px solid #4CAF50', borderRadius: '4px', color: '#4CAF50', fontSize: '12px', fontFamily: 'DM Sans', textAlign: 'center' }}>
+                ✅ Contrat envoyé avec succès !
+              </div>
+            )}
           </div>
         </div>
 
