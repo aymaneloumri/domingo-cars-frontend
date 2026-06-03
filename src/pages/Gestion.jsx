@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getToken } from '../utils/auth';
 import { imgUrl, API_BASE } from '../utils/config';
 import ChefHeader from '../components/ChefHeader';
+import ClientSelector from '../components/ClientSelector';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
 
-const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport'];
+const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport', 'Clients'];
 const CATEGORIES = ['Berline', 'Citadine', 'SUV', 'Utilitaire'];
 
 const MONTH_NAMES_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -113,7 +114,7 @@ export default function Gestion() {
   const [reservations, setReservations] = useState([]);
   const [resModal, setResModal] = useState(false);
   const [editRes, setEditRes] = useState(null);
-  const [resForm, setResForm] = useState({ car_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0 });
+  const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0 });
   const [resConflict, setResConflict] = useState('');
 
   // ── RAPPORT ──
@@ -121,6 +122,13 @@ export default function Gestion() {
   const [rapportMonth, setRapportMonth] = useState(`${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`);
   const [rapportData, setRapportData] = useState(null);
   const [rapportLoading, setRapportLoading] = useState(false);
+
+  // ── CLIENTS ──
+  const [clients, setClients] = useState([]);
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientModal, setClientModal] = useState(false);
+  const [editClient, setEditClient] = useState(null);
+  const [clientForm, setClientForm] = useState({ nom_prenom: '', date_naissance: '', telephone: '', cin_passport: '', cin_passport_expiry: '', adresse: '', permis: '', permis_expiry: '' });
 
   useEffect(() => { loadCars(); loadAnnouncements(); loadReservations(); }, []);
 
@@ -163,6 +171,48 @@ export default function Gestion() {
     } finally {
       setRapportLoading(false);
     }
+  };
+
+  const loadClients = async (search = '') => {
+    try {
+      const url = search ? `/clients?search=${encodeURIComponent(search)}` : '/clients';
+      const data = await apiFetch(url);
+      setClients(data);
+    } catch {}
+  };
+
+  const saveClient = async (e) => {
+    e.preventDefault();
+    try {
+      if (editClient) {
+        await apiFetch(`/clients/${editClient.id}`, { method: 'PUT', body: JSON.stringify(clientForm) });
+      } else {
+        await apiFetch('/clients', { method: 'POST', body: JSON.stringify(clientForm) });
+      }
+      setClientModal(false);
+      setEditClient(null);
+      setClientForm({ nom_prenom: '', date_naissance: '', telephone: '', cin_passport: '', cin_passport_expiry: '', adresse: '', permis: '', permis_expiry: '' });
+      loadClients(clientSearch);
+    } catch (err) {
+      alert('Erreur: ' + err.message);
+    }
+  };
+
+  const deleteClient = async (id) => {
+    if (window.confirm('Supprimer ce client ?')) {
+      try {
+        await apiFetch(`/clients/${id}`, { method: 'DELETE' });
+        loadClients(clientSearch);
+      } catch (err) {
+        alert('Erreur: ' + err.message);
+      }
+    }
+  };
+
+  const openClientEdit = (c) => {
+    setEditClient(c);
+    setClientForm({ nom_prenom: c.nom_prenom || '', date_naissance: c.date_naissance || '', telephone: c.telephone || '', cin_passport: c.cin_passport || '', cin_passport_expiry: c.cin_passport_expiry || '', adresse: c.adresse || '', permis: c.permis || '', permis_expiry: c.permis_expiry || '' });
+    setClientModal(true);
   };
 
   // ── Photo upload ──
@@ -663,6 +713,12 @@ export default function Gestion() {
                       {cars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </Field>
+                  <Field label="Client existant">
+                    <ClientSelector token={getToken()} onSelect={(client) => {
+                      setResForm(p => ({ ...p, client_id: client.id, client_name: client.nom_prenom, client_phone: client.telephone || '' }));
+                    }} />
+                    <div className="text-xs text-gray-600 mt-1 font-body">Ou saisissez manuellement ci-dessous</div>
+                  </Field>
                   <Field label="Nom client *"><input required className={inputCls} value={resForm.client_name} onChange={setC(setResForm, 'client_name')} /></Field>
                   <Field label="Téléphone *"><input required className={inputCls} value={resForm.client_phone} onChange={setC(setResForm, 'client_phone')} placeholder="0612345678" /></Field>
                   <div className="grid grid-cols-2 gap-3">
@@ -833,6 +889,108 @@ export default function Gestion() {
               <div className="text-center py-20 text-gray-500 font-body">
                 Sélectionnez un mois et cliquez sur "Générer le rapport".
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB 4: CLIENTS ── */}
+        {tab === 4 && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading text-2xl">CLIENTS <span className="text-gray-500 text-lg">({clients.length})</span></h2>
+              <button onClick={() => { setEditClient(null); setClientForm({ nom_prenom: '', date_naissance: '', telephone: '', cin_passport: '', cin_passport_expiry: '', adresse: '', permis: '', permis_expiry: '' }); setClientModal(true); }}
+                className="bg-[#FF6B00] text-white font-body text-sm px-5 py-2 rounded hover:bg-orange-500 transition-colors">
+                + Nouveau Client
+              </button>
+            </div>
+
+            <input
+              value={clientSearch}
+              onChange={e => { setClientSearch(e.target.value); loadClients(e.target.value); }}
+              onFocus={() => { if (clients.length === 0) loadClients(''); }}
+              placeholder="Rechercher par nom, CIN ou téléphone..."
+              className={inputCls + ' mb-4'}
+            />
+
+            {clients.length === 0 && (
+              <div className="text-center py-12 text-gray-500 font-body">
+                <button onClick={() => loadClients('')} className="text-[#FF6B00] hover:underline">Charger tous les clients</button>
+              </div>
+            )}
+
+            {clients.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-[#222]">
+                <table className="w-full">
+                  <thead className="bg-[#111] border-b border-[#222]">
+                    <tr>
+                      {['Nom & Prénom','Date naissance','Téléphone','CIN / Passeport','Permis','Actions'].map(h => (
+                        <th key={h} className="text-left text-xs text-gray-400 font-body uppercase tracking-wider px-4 py-3">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clients.map(c => (
+                      <tr key={c.id} className="border-b border-[#1a1a1a] hover:bg-[#111] transition-colors">
+                        <td className="px-4 py-3 font-body text-sm font-medium">{c.nom_prenom}</td>
+                        <td className="px-4 py-3 font-body text-xs text-gray-400">{c.date_naissance || '–'}</td>
+                        <td className="px-4 py-3">
+                          <a href={`https://wa.me/212${c.telephone?.replace(/^0/, '')}`} target="_blank" rel="noopener noreferrer"
+                            className="font-body text-xs text-green-400 hover:underline">{c.telephone || '–'}</a>
+                        </td>
+                        <td className="px-4 py-3 font-body text-xs text-gray-400">{c.cin_passport || '–'}</td>
+                        <td className="px-4 py-3 font-body text-xs text-gray-400">{c.permis || '–'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1.5">
+                            <button onClick={() => openClientEdit(c)} className="text-xs font-body px-2 py-1 bg-[#1a1a1a] border border-[#333] rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">Modifier</button>
+                            <button onClick={() => deleteClient(c.id)} className="text-xs font-body px-2 py-1 bg-red-900/20 border border-red-800/40 text-red-400 rounded hover:bg-red-900/40 transition-colors">🗑</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {clientModal && (
+              <Modal title={editClient ? 'Modifier le client' : 'Nouveau client'} onClose={() => setClientModal(false)}>
+                <form onSubmit={saveClient} className="space-y-4">
+                  <Field label="Nom & Prénom *">
+                    <input required className={inputCls} value={clientForm.nom_prenom} onChange={e => setClientForm(p => ({ ...p, nom_prenom: e.target.value }))} />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Date de naissance">
+                      <input type="date" className={inputCls} value={clientForm.date_naissance} onChange={e => setClientForm(p => ({ ...p, date_naissance: e.target.value }))} />
+                    </Field>
+                    <Field label="Téléphone">
+                      <input className={inputCls} value={clientForm.telephone} onChange={e => setClientForm(p => ({ ...p, telephone: e.target.value }))} placeholder="0612345678" />
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="CIN / Passeport">
+                      <input className={inputCls} value={clientForm.cin_passport} onChange={e => setClientForm(p => ({ ...p, cin_passport: e.target.value }))} />
+                    </Field>
+                    <Field label="Expiration CIN/Passeport">
+                      <input type="date" className={inputCls} value={clientForm.cin_passport_expiry} onChange={e => setClientForm(p => ({ ...p, cin_passport_expiry: e.target.value }))} />
+                    </Field>
+                  </div>
+                  <Field label="Adresse">
+                    <input className={inputCls} value={clientForm.adresse} onChange={e => setClientForm(p => ({ ...p, adresse: e.target.value }))} />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="N° Permis">
+                      <input className={inputCls} value={clientForm.permis} onChange={e => setClientForm(p => ({ ...p, permis: e.target.value }))} />
+                    </Field>
+                    <Field label="Expiration Permis">
+                      <input type="date" className={inputCls} value={clientForm.permis_expiry} onChange={e => setClientForm(p => ({ ...p, permis_expiry: e.target.value }))} />
+                    </Field>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={() => setClientModal(false)} className="flex-1 border border-[#444] text-gray-400 font-body py-2 rounded hover:border-[#666]">Annuler</button>
+                    <button type="submit" className="flex-1 bg-[#FF6B00] text-white font-body font-semibold py-2 rounded hover:bg-orange-500">{editClient ? 'Enregistrer' : 'Créer'}</button>
+                  </div>
+                </form>
+              </Modal>
             )}
           </div>
         )}

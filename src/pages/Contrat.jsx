@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import ChefHeader from '../components/ChefHeader';
 import { previewContractPDF, downloadContractPDF } from '../components/PdfGenerator';
+import ClientSelector from '../components/ClientSelector';
+import { getToken } from '../utils/auth';
 
 const FUEL_OPTIONS = ['1/8','2/8','3/8','4/8','5/8','6/8','7/8','8/8'];
 const CATEGORIES = ['Economie','Berline','SUV','Utilitaire'];
@@ -223,6 +225,31 @@ export default function Contrat() {
 
           {/* S2 — Locataire */}
           <SectionTitle>2. LOCATAIRE</SectionTitle>
+          <div style={{ marginBottom: '20px', padding: '14px', background: 'rgba(255,107,0,0.05)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '6px' }}>
+            <label style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>
+              🔍 Sélectionner un client existant
+            </label>
+            <ClientSelector
+              token={getToken()}
+              onSelect={(client) => {
+                setForm(prev => ({
+                  ...prev,
+                  client_id: client.id,
+                  client_name: client.nom_prenom,
+                  client_dob: client.date_naissance || '',
+                  client_phone: client.telephone || '',
+                  client_cin: client.cin_passport || '',
+                  client_cin_expiry: client.cin_passport_expiry || '',
+                  client_address: client.adresse || '',
+                  client_permis: client.permis || '',
+                  client_permis_expiry: client.permis_expiry || '',
+                }));
+              }}
+            />
+            <div style={{ color: '#3a2e1e', fontSize: '11px', marginTop: '8px', fontFamily: 'DM Sans' }}>
+              Tous les champs seront remplis automatiquement. Vous pouvez les modifier si nécessaire.
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Nom & Prénom" required className="md:col-span-2">
               <input required className={inputCls} value={form.client_name} onChange={set('client_name')} placeholder="Mohammed Alami" />
@@ -266,6 +293,25 @@ export default function Contrat() {
           </div>
           {form.driver2_enabled && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="md:col-span-3 mb-2">
+                <ClientSelector
+                  token={getToken()}
+                  placeholder="🔍 Rechercher le 2ème conducteur..."
+                  onSelect={(client) => {
+                    setForm(prev => ({
+                      ...prev,
+                      driver2_name: client.nom_prenom,
+                      driver2_dob: client.date_naissance || '',
+                      driver2_phone: client.telephone || '',
+                      driver2_cin: client.cin_passport || '',
+                      driver2_cin_expiry: client.cin_passport_expiry || '',
+                      driver2_address: client.adresse || '',
+                      driver2_permis: client.permis || '',
+                      driver2_permis_expiry: client.permis_expiry || '',
+                    }));
+                  }}
+                />
+              </div>
               <Field label="Nom & Prénom" className="md:col-span-2">
                 <input className={inputCls} value={form.driver2_name} onChange={set('driver2_name')} />
               </Field>
