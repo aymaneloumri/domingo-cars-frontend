@@ -103,10 +103,10 @@ export default function CarCard({ car }) {
         </div>
 
         {availability !== null && (
-          <div className={`text-sm font-body text-center py-1.5 rounded border ${
+          <div className={`text-sm font-body text-center py-2 rounded border ${
             availability ? 'text-green-400 border-green-400/30 bg-green-400/10' : 'text-red-400 border-red-400/30 bg-red-400/10'
           }`}>
-            {availability ? '✅ Disponible' : '❌ Indisponible pour ces dates'}
+            {availability ? '✅ Disponible — Réservez maintenant !' : '❌ Ce véhicule est déjà réservé pour ces dates'}
           </div>
         )}
 

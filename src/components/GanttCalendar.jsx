@@ -1,4 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
+import ClientSelector from './ClientSelector';
+import { getToken } from '../utils/auth';
 
 const DAY_W = 44;
 const ROW_H = 56;
@@ -370,9 +372,25 @@ function ReservationModal({ title, data, cars, reservations, onClose, onSave }) 
             </div>
           </div>
           <div>
+            <label className="text-xs text-gray-400 font-body block mb-1">Client</label>
+            <ClientSelector
+              token={getToken()}
+              onSelect={(client) => {
+                set('client_name', client.nom_prenom);
+                set('client_phone', client.telephone || '');
+                set('client_id', client.id);
+              }}
+            />
+            {form.client_name && (
+              <div style={{ color: '#c9a87c', fontSize: '11px', fontFamily: 'DM Sans', marginTop: '6px', padding: '6px 10px', background: 'rgba(255,107,0,0.05)', borderRadius: '4px' }}>
+                ✓ {form.client_name}{form.client_phone ? ` — ${form.client_phone}` : ''}
+              </div>
+            )}
+          </div>
+          <div>
             <label className="text-xs text-gray-400 font-body block mb-1">Nom client *</label>
             <input type="text" value={form.client_name} onChange={e => set('client_name', e.target.value)}
-              className="w-full bg-[#111] border border-[#333] text-white text-sm font-body px-3 py-2 rounded focus:border-[#FF6B00] focus:outline-none" />
+              className="w-full bg-[#111] border border-[#333] text-white text-sm font-body px-3 py-2 rounded focus:border-[#FF6B00] focus:outline-none" placeholder="Ou saisissez manuellement" />
           </div>
           <div>
             <label className="text-xs text-gray-400 font-body block mb-1">Téléphone *</label>

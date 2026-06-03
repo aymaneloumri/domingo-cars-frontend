@@ -243,13 +243,15 @@ export default function Contrat() {
       if (editId) {
         await api.put('/contracts', { id: editId, ...payload });
         setSaveMsg('✅ Contrat mis à jour.');
+        loadContracts();
       } else {
-        await api.post('/contracts', payload);
-        setSaveMsg('✅ Contrat créé avec succès.');
+        const r = await api.post('/contracts', payload);
+        const data = r.data;
+        setSaveMsg(`✅ Contrat ${data.contract_number || ''} enregistré !`);
+        setEditId(data.id);
+        setForm(prev => ({ ...prev, contract_number: data.contract_number, id: data.id }));
+        loadContracts();
       }
-      setEditId(null);
-      loadContracts();
-      setForm(emptyForm());
     } catch (err) {
       setSaveMsg('❌ Erreur: ' + (err.response?.data?.error || 'Sauvegarde échouée.'));
     } finally {
@@ -302,8 +304,23 @@ export default function Contrat() {
           {/* S1 — Infos Contrat */}
           <SectionTitle>1. INFOS CONTRAT</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Field label="N° Contrat" required>
-              <input className={inputCls} value={form.contract_number} onChange={set('contract_number')} />
+            <Field label="N° Contrat">
+              <input
+                readOnly
+                value={form.contract_number || ''}
+                placeholder="Généré après enregistrement"
+                style={{
+                  width: '100%',
+                  background: '#0d0b08',
+                  border: `0.5px solid ${form.contract_number && form.contract_number !== 'Auto-généré' ? '#FF6B00' : '#2a2010'}`,
+                  color: form.contract_number && form.contract_number !== 'Auto-généré' ? '#FF6B00' : '#5a4a2a',
+                  padding: '10px 14px',
+                  borderRadius: '4px',
+                  fontFamily: 'DM Sans',
+                  fontSize: form.contract_number && form.contract_number !== 'Auto-généré' ? '16px' : '12px',
+                  fontWeight: form.contract_number && form.contract_number !== 'Auto-généré' ? 'bold' : 'normal',
+                }}
+              />
             </Field>
             <Field label="Date du contrat" className="col-span-2">
               <input type="datetime-local" className={inputCls} value={form.contract_date} onChange={set('contract_date')} />
