@@ -159,6 +159,7 @@ export default function Contrat() {
         { headers: { 'x-admin-token': getToken() } }
       );
       const reservations = await res.json();
+      console.log('[by-client] response:', reservations);
       if (Array.isArray(reservations) && reservations.length > 0) {
         setClientReservations(reservations);
         setShowReservationPicker(true);
