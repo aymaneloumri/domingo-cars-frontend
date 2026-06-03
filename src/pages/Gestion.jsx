@@ -668,7 +668,6 @@ export default function Gestion() {
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Date début *">
                       <input required type="date" className={inputCls} value={resForm.start_date}
-                        min={new Date().toISOString().split('T')[0]}
                         onChange={e => {
                           const s = e.target.value;
                           const pricing = calcPricing(s, '', resForm.prix_par_jour);
@@ -678,7 +677,6 @@ export default function Gestion() {
                     </Field>
                     <Field label="Date fin *">
                       <input required type="date" className={inputCls} value={resForm.end_date}
-                        min={(() => { if (!resForm.start_date) return new Date().toISOString().split('T')[0]; const d = new Date(resForm.start_date + 'T00:00:00'); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}
                         onChange={e => {
                           const d = e.target.value;
                           const pricing = calcPricing(resForm.start_date, d, resForm.prix_par_jour);
