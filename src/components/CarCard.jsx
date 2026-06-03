@@ -57,6 +57,19 @@ export default function CarCard({ car }) {
         <div>
           <p className="text-[#FF6B00] text-xs font-body uppercase tracking-widest mb-1">{car.category}</p>
           <h3 className="font-heading text-xl">{car.name}</h3>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            <span className={`text-xs font-body px-2.5 py-0.5 rounded-full border ${
+              car.carburant === 'diesel' ? 'text-gray-400 bg-gray-400/10 border-gray-400/30' :
+              car.carburant === 'hybride' ? 'text-green-400 bg-green-400/10 border-green-400/30' :
+              car.carburant === 'electrique' ? 'text-blue-400 bg-blue-400/10 border-blue-400/30' :
+              'text-[#FF6B00] bg-[#FF6B00]/10 border-[#FF6B00]/30'
+            }`}>
+              {car.carburant === 'diesel' ? '🛢️' : car.carburant === 'hybride' ? '⚡' : car.carburant === 'electrique' ? '🔋' : '⛽'} {car.carburant ? car.carburant.charAt(0).toUpperCase() + car.carburant.slice(1) : 'Essence'}
+            </span>
+            <span className="text-xs font-body px-2.5 py-0.5 rounded-full border text-gray-400 bg-gray-400/10 border-gray-400/30">
+              {car.boite_vitesse === 'automatique' ? '🤖' : '🔧'} {car.boite_vitesse ? car.boite_vitesse.charAt(0).toUpperCase() + car.boite_vitesse.slice(1) : 'Manuelle'}
+            </span>
+          </div>
           {car.description && <p className="text-gray-400 text-xs font-body mt-1">{car.description}</p>}
         </div>
 

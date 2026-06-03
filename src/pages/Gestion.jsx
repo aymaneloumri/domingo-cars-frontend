@@ -98,7 +98,7 @@ export default function Gestion() {
   const [cars, setCars] = useState([]);
   const [carModal, setCarModal] = useState(false);
   const [editCar, setEditCar] = useState(null);
-  const [carForm, setCarForm] = useState({ name: '', category: 'Berline', price_per_day: '', description: '', matricule: '', status: 'active' });
+  const [carForm, setCarForm] = useState({ name: '', category: 'Berline', price_per_day: '', description: '', matricule: '', status: 'active', carburant: 'essence', boite_vitesse: 'manuelle' });
   const [imageUrl, setImageUrl]     = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [uploading, setUploading]   = useState(false);
@@ -192,7 +192,7 @@ export default function Gestion() {
 
   // ── CAR handlers ──
   const resetCarForm = () => {
-    setCarForm({ name: '', category: 'Berline', price_per_day: '', description: '', matricule: '', status: 'active' });
+    setCarForm({ name: '', category: 'Berline', price_per_day: '', description: '', matricule: '', status: 'active', carburant: 'essence', boite_vitesse: 'manuelle' });
     clearPhoto();
   };
 
@@ -204,7 +204,7 @@ export default function Gestion() {
 
   const openCarEdit = (c) => {
     setEditCar(c);
-    setCarForm({ name: c.name, category: c.category, price_per_day: c.price_per_day, description: c.description || '', matricule: c.matricule || '', status: c.status });
+    setCarForm({ name: c.name, category: c.category, price_per_day: c.price_per_day, description: c.description || '', matricule: c.matricule || '', status: c.status, carburant: c.carburant || 'essence', boite_vitesse: c.boite_vitesse || 'manuelle' });
     if (c.image_url) {
       setImageUrl(c.image_url);
       setPreviewUrl(imgUrl(c.image_url));
@@ -428,7 +428,7 @@ export default function Gestion() {
               <table className="w-full">
                 <thead className="bg-[#111] border-b border-[#222]">
                   <tr>
-                    {['Photo','Nom','Catégorie','Prix/j','Matricule','Statut','Actions'].map(h => (
+                    {['Photo','Nom','Catégorie','Prix/j','Matricule','Carburant','Boîte','Statut','Actions'].map(h => (
                       <th key={h} className="text-left text-xs text-gray-400 font-body uppercase tracking-wider px-4 py-3">{h}</th>
                     ))}
                   </tr>
@@ -448,6 +448,23 @@ export default function Gestion() {
                       <td className="px-4 py-3 font-body text-sm text-gray-400">{car.category}</td>
                       <td className="px-4 py-3 font-body text-sm text-[#FF6B00]">{car.price_per_day} MAD</td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{car.matricule || '–'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-body px-2 py-0.5 rounded border ${
+                          car.carburant === 'diesel' ? 'text-gray-400 bg-gray-400/10 border-gray-400/30' :
+                          car.carburant === 'hybride' ? 'text-green-400 bg-green-400/10 border-green-400/30' :
+                          car.carburant === 'electrique' ? 'text-blue-400 bg-blue-400/10 border-blue-400/30' :
+                          'text-[#FF6B00] bg-[#FF6B00]/10 border-[#FF6B00]/30'
+                        }`}>
+                          {car.carburant === 'diesel' ? '🛢️' : car.carburant === 'hybride' ? '⚡' : car.carburant === 'electrique' ? '🔋' : '⛽'} {car.carburant || 'essence'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-body px-2 py-0.5 rounded border ${
+                          car.boite_vitesse === 'automatique' ? 'text-[#FF6B00] bg-[#FF6B00]/10 border-[#FF6B00]/30' : 'text-gray-400 bg-gray-400/10 border-gray-400/30'
+                        }`}>
+                          {car.boite_vitesse === 'automatique' ? '🤖' : '🔧'} {car.boite_vitesse || 'manuelle'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-body px-2 py-0.5 rounded border ${statusBadge(car.status)}`}>{statusLabel(car.status)}</span>
                       </td>
@@ -494,6 +511,22 @@ export default function Gestion() {
                   <Field label="Matricule">
                     <input className={inputCls} value={carForm.matricule} onChange={setC(setCarForm, 'matricule')} placeholder="WW-894-205" />
                   </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Carburant">
+                      <select className={selectCls} value={carForm.carburant} onChange={setC(setCarForm, 'carburant')}>
+                        <option value="essence">⛽ Essence</option>
+                        <option value="diesel">🛢️ Diesel</option>
+                        <option value="hybride">⚡ Hybride</option>
+                        <option value="electrique">🔋 Électrique</option>
+                      </select>
+                    </Field>
+                    <Field label="Boîte à vitesse">
+                      <select className={selectCls} value={carForm.boite_vitesse} onChange={setC(setCarForm, 'boite_vitesse')}>
+                        <option value="manuelle">🔧 Manuelle</option>
+                        <option value="automatique">🤖 Automatique</option>
+                      </select>
+                    </Field>
+                  </div>
                   <Field label="Statut">
                     <select className={selectCls} value={carForm.status} onChange={setC(setCarForm, 'status')}>
                       <option value="active">Actif</option>

@@ -6,25 +6,43 @@ import { API_BASE } from '../utils/config';
 
 const WA_LINK = 'https://wa.me/212701050809';
 
+const filterBtn = (active) => ({
+  flexShrink: 0,
+  padding: '6px 16px',
+  borderRadius: 20,
+  fontSize: 12,
+  fontFamily: '"DM Sans", sans-serif',
+  cursor: 'pointer',
+  border: 'none',
+  background: active ? '#FF6B00' : 'transparent',
+  color: active ? '#fff' : '#666',
+  outline: active ? 'none' : '0.5px solid #333',
+  transition: 'all 0.2s',
+});
+
 export default function Cars() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('Tous');
+  const [filterCategory, setFilterCategory] = useState('Tous');
+  const [filterCarburant, setFilterCarburant] = useState('tous');
+  const [filterBoite, setFilterBoite] = useState('tous');
 
   const categories = ['Tous', 'Berline', 'Citadine', 'SUV', 'Utilitaire'];
 
   useEffect(() => {
     fetch(`${API_BASE}/api/cars`)
       .then(r => r.json())
-      .then(data => {
-        console.log('Cars from API:', data.map(c => c.name));
-        setCars(data);
-      })
+      .then(data => { setCars(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = filter === 'Tous' ? cars : cars.filter(c => c.category === filter);
+  const filteredCars = cars.filter(car => {
+    const matchCategory  = filterCategory === 'Tous' || car.category === filterCategory;
+    const matchCarburant = filterCarburant === 'tous' || car.carburant === filterCarburant;
+    const matchBoite     = filterBoite === 'tous' || car.boite_vitesse === filterBoite;
+    return matchCategory && matchCarburant && matchBoite;
+  });
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
@@ -49,24 +67,58 @@ export default function Cars() {
           <p className="text-[#FF6B00] font-heading text-sm tracking-[0.3em] mb-1">DOMINGO CARS LUXURY RENT</p>
           <h2 className="font-heading text-4xl md:text-5xl">NOTRE FLOTTE</h2>
           <p className="font-body text-gray-400 text-sm mt-2">
-            {cars.length} véhicule{cars.length !== 1 ? 's' : ''} disponible{cars.length !== 1 ? 's' : ''} — Casablanca, Maroc
+            {filteredCars.length} véhicule{filteredCars.length !== 1 ? 's' : ''} — Casablanca, Maroc
           </p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="border-b border-[#1e1e1e] sticky top-[65px] z-30 bg-[#0A0A0A]">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
-          {categories.map(cat => (
-            <button key={cat} onClick={() => setFilter(cat)}
-              className={`flex-shrink-0 px-4 py-1.5 text-sm font-body rounded transition-all ${
-                filter === cat
-                  ? 'bg-[#FF6B00] text-white'
-                  : 'bg-[#111] border border-[#333] text-gray-400 hover:border-[#FF6B00] hover:text-white'
-              }`}>
-              {cat}
-            </button>
-          ))}
+        <div className="max-w-7xl mx-auto px-4 py-3 space-y-2">
+          {/* Category filter */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {categories.map(cat => (
+              <button key={cat} onClick={() => setFilterCategory(cat)}
+                className={`flex-shrink-0 px-4 py-1.5 text-sm font-body rounded transition-all ${
+                  filterCategory === cat
+                    ? 'bg-[#FF6B00] text-white'
+                    : 'bg-[#111] border border-[#333] text-gray-400 hover:border-[#FF6B00] hover:text-white'
+                }`}>
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Carburant + Boîte filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex gap-2 overflow-x-auto">
+              {[
+                { value: 'tous', label: 'Tous carburants' },
+                { value: 'essence', label: '⛽ Essence' },
+                { value: 'diesel', label: '🛢️ Diesel' },
+                { value: 'hybride', label: '⚡ Hybride' },
+                { value: 'electrique', label: '🔋 Électrique' },
+              ].map(f => (
+                <button key={f.value} onClick={() => setFilterCarburant(f.value)}
+                  style={filterBtn(filterCarburant === f.value)}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div className="w-px h-5 bg-[#333] hidden sm:block" />
+            <div className="flex gap-2 overflow-x-auto">
+              {[
+                { value: 'tous', label: 'Toutes boîtes' },
+                { value: 'manuelle', label: '🔧 Manuelle' },
+                { value: 'automatique', label: '🤖 Automatique' },
+              ].map(f => (
+                <button key={f.value} onClick={() => setFilterBoite(f.value)}
+                  style={filterBtn(filterBoite === f.value)}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -76,13 +128,13 @@ export default function Cars() {
           <div className="flex items-center justify-center py-20">
             <div className="w-10 h-10 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filteredCars.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500 font-body">Aucun véhicule dans cette catégorie.</p>
+            <p className="text-gray-500 font-body">Aucun véhicule pour ces filtres.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filtered.map(car => <CarCard key={car.id} car={car} />)}
+            {filteredCars.map(car => <CarCard key={car.id} car={car} />)}
           </div>
         )}
       </main>

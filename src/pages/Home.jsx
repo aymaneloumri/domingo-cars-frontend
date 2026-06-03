@@ -91,6 +91,16 @@ function CarPreviewCard({ car }) {
         <div style={{ fontFamily: '"Playfair Display", serif', fontSize: 18, color: '#fff', marginBottom: 8 }}>
           {car.name}
         </div>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,107,0,0.1)', border: '0.5px solid rgba(255,107,0,0.3)', borderRadius: '20px', padding: '3px 10px', fontSize: '10px', color: '#FF6B00', fontFamily: '"DM Sans", sans-serif' }}>
+            {car.carburant === 'diesel' ? '🛢️' : car.carburant === 'hybride' ? '⚡' : car.carburant === 'electrique' ? '🔋' : '⛽'}
+            {' '}{car.carburant ? car.carburant.charAt(0).toUpperCase() + car.carburant.slice(1) : 'Essence'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '3px 10px', fontSize: '10px', color: '#aaa', fontFamily: '"DM Sans", sans-serif' }}>
+            {car.boite_vitesse === 'automatique' ? '🤖' : '🔧'}
+            {' '}{car.boite_vitesse ? car.boite_vitesse.charAt(0).toUpperCase() + car.boite_vitesse.slice(1) : 'Manuelle'}
+          </div>
+        </div>
         <div>
           <span style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 28, color: '#FF6B00' }}>{car.price_per_day}</span>
           <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 11, color: '#5a4a2a', marginLeft: 4 }}>/jour</span>
