@@ -160,6 +160,38 @@ export default function Home() {
   const fleetRef = useRef(null);
 
   useEffect(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "CarRental",
+      "name": "Domingo Cars Luxury Rent",
+      "image": "https://www.domingocars.ma/logo.jpg",
+      "url": "https://www.domingocars.ma",
+      "telephone": "+212701050809",
+      "email": "Domingocarsrent@gmail.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Casablanca",
+        "addressCountry": "MA"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 33.5731,
+        "longitude": -7.5898
+      },
+      "openingHours": "Mo-Su 08:00-20:00",
+      "priceRange": "180-220 MAD",
+      "description": "Location de voiture à Casablanca, Maroc. Dacia Logan, Sandero, Renault Clio, Opel Corsa disponibles dès 180 MAD/jour.",
+      "sameAs": [
+        "https://www.instagram.com/domingocarsrent"
+      ]
+    });
+    document.head.appendChild(script);
+    return () => document.head.removeChild(script);
+  }, []);
+
+  useEffect(() => {
     fetch(`${API_BASE}/api/cars`)
       .then(r => r.json())
       .then(data => {

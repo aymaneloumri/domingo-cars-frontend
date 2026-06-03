@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /chef/
+Disallow: /chef/gestion
+Disallow: /chef/dashboard
+Disallow: /chef/contrat
+
+Sitemap: https://www.domingocars.ma/sitemap.xml
