@@ -4,6 +4,7 @@ import ChefHeader from '../components/ChefHeader';
 import { previewContractPDF, downloadContractPDF } from '../components/PdfGenerator';
 import ClientSelector from '../components/ClientSelector';
 import { getToken } from '../utils/auth';
+import { API_BASE } from '../utils/config';
 
 const FUEL_OPTIONS = ['1/8','2/8','3/8','4/8','5/8','6/8','7/8','8/8'];
 const CATEGORIES = ['Economie','Berline','SUV','Utilitaire'];
@@ -83,6 +84,8 @@ export default function Contrat() {
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [clientReservations, setClientReservations] = useState([]);
+  const [showReservationPicker, setShowReservationPicker] = useState(false);
 
   useEffect(() => {
     api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
@@ -135,6 +138,60 @@ export default function Contrat() {
       }
       return next;
     });
+  };
+
+  const handleClientSelect = async (client) => {
+    setForm(prev => ({
+      ...prev,
+      client_id: client.id,
+      client_name: client.nom_prenom,
+      client_dob: client.date_naissance || '',
+      client_phone: client.telephone || '',
+      client_cin: client.cin_passport || '',
+      client_cin_expiry: client.cin_passport_expiry || '',
+      client_address: client.adresse || '',
+      client_permis: client.permis || '',
+      client_permis_expiry: client.permis_expiry || '',
+    }));
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/reservations/by-client/${client.id}`,
+        { headers: { 'x-admin-token': getToken() } }
+      );
+      const reservations = await res.json();
+      if (Array.isArray(reservations) && reservations.length > 0) {
+        setClientReservations(reservations);
+        setShowReservationPicker(true);
+      } else {
+        setClientReservations([]);
+        setShowReservationPicker(false);
+      }
+    } catch (err) {
+      console.error('Error fetching reservations:', err);
+    }
+  };
+
+  const handleReservationSelect = (resa) => {
+    setForm(prev => ({
+      ...prev,
+      car_id: resa.car_id,
+      brand: resa.car_name ? resa.car_name.split(' ')[0] : '',
+      model: resa.car_name || '',
+      matricule: resa.matricule || '',
+      category: resa.category || prev.category,
+      nb_days: resa.nb_jours || 0,
+      price_per_day: resa.prix_par_jour || resa.price_per_day || 0,
+      total: resa.prix_total || 0,
+      avance: 0,
+      reste: resa.prix_total || 0,
+      depart_datetime: resa.start_datetime
+        ? resa.start_datetime.slice(0, 16)
+        : resa.start_date ? resa.start_date + 'T08:00' : prev.depart_datetime,
+      retour_prevu: resa.end_datetime
+        ? resa.end_datetime.slice(0, 16)
+        : resa.end_date ? resa.end_date + 'T18:00' : prev.retour_prevu,
+    }));
+    setShowReservationPicker(false);
   };
 
   const handleSave = async () => {
@@ -229,26 +286,44 @@ export default function Contrat() {
             <label style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>
               🔍 Sélectionner un client existant
             </label>
-            <ClientSelector
-              token={getToken()}
-              onSelect={(client) => {
-                setForm(prev => ({
-                  ...prev,
-                  client_id: client.id,
-                  client_name: client.nom_prenom,
-                  client_dob: client.date_naissance || '',
-                  client_phone: client.telephone || '',
-                  client_cin: client.cin_passport || '',
-                  client_cin_expiry: client.cin_passport_expiry || '',
-                  client_address: client.adresse || '',
-                  client_permis: client.permis || '',
-                  client_permis_expiry: client.permis_expiry || '',
-                }));
-              }}
-            />
+            <ClientSelector token={getToken()} onSelect={handleClientSelect} />
             <div style={{ color: '#3a2e1e', fontSize: '11px', marginTop: '8px', fontFamily: 'DM Sans' }}>
               Tous les champs seront remplis automatiquement. Vous pouvez les modifier si nécessaire.
             </div>
+            {showReservationPicker && clientReservations.length > 0 && (
+              <div style={{ marginTop: '12px', padding: '14px', background: 'rgba(255,107,0,0.05)', border: '0.5px solid rgba(255,107,0,0.3)', borderRadius: '6px' }}>
+                <div style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px', fontFamily: 'DM Sans' }}>
+                  📅 Réservations trouvées — Sélectionnez pour remplir le contrat
+                </div>
+                {clientReservations.map(resa => (
+                  <div key={resa.id} onClick={() => handleReservationSelect(resa)}
+                    style={{ padding: '10px 14px', background: '#111', border: '0.5px solid #2a2010', borderRadius: '4px', marginBottom: '8px', cursor: 'pointer', transition: 'border-color 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#FF6B00'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#2a2010'}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ color: '#fff', fontSize: '13px', fontFamily: 'DM Sans', fontWeight: 500 }}>{resa.car_name}</span>
+                        {resa.matricule && <span style={{ color: '#5a4a2a', fontSize: '11px', marginLeft: '8px' }}>({resa.matricule})</span>}
+                      </div>
+                      <span style={{ background: resa.status === 'confirmed' ? '#FF6B00' : '#2a2a2a', color: '#fff', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontFamily: 'DM Sans' }}>
+                        {resa.status}
+                      </span>
+                    </div>
+                    <div style={{ color: '#5a4a2a', fontSize: '11px', fontFamily: 'DM Sans', marginTop: '4px' }}>
+                      {resa.start_datetime ? new Date(resa.start_datetime).toLocaleString('fr-FR') : resa.start_date}
+                      {' → '}
+                      {resa.end_datetime ? new Date(resa.end_datetime).toLocaleString('fr-FR') : resa.end_date}
+                      {resa.nb_jours ? ` — ${resa.nb_jours} jours` : ''}
+                      {resa.prix_total ? ` — ${resa.prix_total} MAD` : ''}
+                    </div>
+                  </div>
+                ))}
+                <button onClick={() => setShowReservationPicker(false)}
+                  style={{ background: 'transparent', border: '0.5px solid #333', color: '#666', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontFamily: 'DM Sans' }}>
+                  Ignorer — remplir manuellement
+                </button>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Nom & Prénom" required className="md:col-span-2">

@@ -114,7 +114,7 @@ export default function Gestion() {
   const [reservations, setReservations] = useState([]);
   const [resModal, setResModal] = useState(false);
   const [editRes, setEditRes] = useState(null);
-  const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0 });
+  const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0 });
   const [resConflict, setResConflict] = useState('');
 
   // ── RAPPORT ──
@@ -337,13 +337,13 @@ export default function Gestion() {
   const openResAdd = () => {
     const firstCar = cars[0];
     setEditRes(null); setResConflict('');
-    setResForm({ car_id: firstCar?.id || '', client_name: '', client_phone: '', start_date: '', end_date: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0 });
+    setResForm({ car_id: firstCar?.id || '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0 });
     setResModal(true);
   };
 
   const openResEdit = (r) => {
     setEditRes(r); setResConflict('');
-    setResForm({ car_id: r.car_id, client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0 });
+    setResForm({ car_id: r.car_id, client_id: r.client_id || '', client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, start_datetime: r.start_datetime || '', end_datetime: r.end_datetime || '', status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0 });
     setResModal(true);
   };
 
@@ -680,8 +680,8 @@ export default function Gestion() {
                         <a href={`https://wa.me/212${r.client_phone?.replace(/^0/, '')}`} target="_blank" rel="noopener noreferrer"
                           className="font-body text-xs text-green-400 hover:underline">{r.client_phone}</a>
                       </td>
-                      <td className="px-4 py-3 font-body text-xs text-gray-400">{r.start_date}</td>
-                      <td className="px-4 py-3 font-body text-xs text-gray-400">{r.end_date}</td>
+                      <td className="px-4 py-3 font-body text-xs text-gray-400">{r.start_datetime ? new Date(r.start_datetime).toLocaleString('fr-FR', {dateStyle:'short',timeStyle:'short'}) : r.start_date}</td>
+                      <td className="px-4 py-3 font-body text-xs text-gray-400">{r.end_datetime ? new Date(r.end_datetime).toLocaleString('fr-FR', {dateStyle:'short',timeStyle:'short'}) : r.end_date}</td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.prix_par_jour ? `${r.prix_par_jour} MAD` : '–'}</td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.nb_jours ? `${r.nb_jours}j` : '–'}</td>
                       <td className="px-4 py-3 font-body text-xs text-[#FF6B00] font-semibold">{r.prix_total ? `${r.prix_total} MAD` : '–'}</td>
@@ -722,32 +722,58 @@ export default function Gestion() {
                   <Field label="Nom client *"><input required className={inputCls} value={resForm.client_name} onChange={setC(setResForm, 'client_name')} /></Field>
                   <Field label="Téléphone *"><input required className={inputCls} value={resForm.client_phone} onChange={setC(setResForm, 'client_phone')} placeholder="0612345678" /></Field>
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Date début *">
-                      <input required type="date" className={inputCls} value={resForm.start_date}
+                    <Field label="Date et heure de début *">
+                      <input required type="datetime-local" className={inputCls} value={resForm.start_datetime}
                         onChange={e => {
-                          const s = e.target.value;
-                          const pricing = calcPricing(s, '', resForm.prix_par_jour);
-                          setResForm(p => ({ ...p, start_date: s, end_date: '', ...pricing }));
+                          const val = e.target.value;
+                          const startDate = val ? val.slice(0, 10) : '';
+                          if (resForm.end_datetime && val) {
+                            const days = Math.ceil((new Date(resForm.end_datetime) - new Date(val)) / (1000 * 60 * 60 * 24));
+                            const d = days > 0 ? days : 0;
+                            setResForm(p => ({ ...p, start_datetime: val, start_date: startDate, end_datetime: '', end_date: '', nb_jours: 0, prix_total: 0 }));
+                          } else {
+                            setResForm(p => ({ ...p, start_datetime: val, start_date: startDate, end_datetime: '', end_date: '', nb_jours: 0, prix_total: 0 }));
+                          }
                           setResConflict('');
                         }} />
                     </Field>
-                    <Field label="Date fin *">
-                      <input required type="date" className={inputCls} value={resForm.end_date}
+                    <Field label="Date et heure de fin *">
+                      <input required type="datetime-local" className={inputCls} value={resForm.end_datetime}
+                        min={resForm.start_datetime || ''}
                         onChange={e => {
-                          const d = e.target.value;
-                          const pricing = calcPricing(resForm.start_date, d, resForm.prix_par_jour);
-                          setResForm(p => ({ ...p, end_date: d, ...pricing }));
+                          const val = e.target.value;
+                          const endDate = val ? val.slice(0, 10) : '';
+                          if (resForm.start_datetime && val) {
+                            const days = Math.ceil((new Date(val) - new Date(resForm.start_datetime)) / (1000 * 60 * 60 * 24));
+                            const d = days > 0 ? days : 0;
+                            const total = d * (resForm.prix_par_jour || 0);
+                            setResForm(p => ({ ...p, end_datetime: val, end_date: endDate, nb_jours: d, prix_total: total }));
+                          } else {
+                            setResForm(p => ({ ...p, end_datetime: val, end_date: endDate }));
+                          }
                           setResConflict('');
                         }} />
                     </Field>
                   </div>
+                  {(resForm.nb_jours > 0 || resForm.prix_total > 0) && (
+                    <div style={{ display: 'flex', gap: '24px', padding: '10px 14px', background: 'rgba(255,107,0,0.05)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '4px' }}>
+                      <div>
+                        <div style={{ color: '#5a4a2a', fontSize: '10px' }}>DURÉE</div>
+                        <div style={{ color: '#FF6B00', fontFamily: '"Bebas Neue", cursive', fontSize: '22px' }}>{resForm.nb_jours || 0} jours</div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#5a4a2a', fontSize: '10px' }}>TOTAL</div>
+                        <div style={{ color: '#FF6B00', fontFamily: '"Bebas Neue", cursive', fontSize: '22px' }}>{resForm.prix_total || 0} MAD</div>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-3 gap-3">
                     <Field label="Prix/jour (MAD)">
                       <input type="number" className={inputCls} value={resForm.prix_par_jour}
                         onChange={e => {
                           const ppj = parseFloat(e.target.value) || 0;
-                          const pricing = calcPricing(resForm.start_date, resForm.end_date, ppj);
-                          setResForm(p => ({ ...p, prix_par_jour: ppj, ...pricing }));
+                          const total = (resForm.nb_jours || 0) * ppj;
+                          setResForm(p => ({ ...p, prix_par_jour: ppj, prix_total: total }));
                         }} />
                     </Field>
                     <Field label="Nb jours">

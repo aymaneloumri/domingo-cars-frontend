@@ -237,8 +237,8 @@ export default function GanttCalendar({
                 className="text-green-400 hover:underline">{popover.client_phone}</a>
             </div>
             <div><span className="text-gray-400">Voiture: </span>{popover.car_name}</div>
-            <div><span className="text-gray-400">Du: </span>{popover.start_date}</div>
-            <div><span className="text-gray-400">Au: </span>{popover.end_date}</div>
+            <div><span className="text-gray-400">Du: </span>{popover.start_datetime ? new Date(popover.start_datetime).toLocaleString('fr-FR', {dateStyle:'short',timeStyle:'short'}) : popover.start_date}</div>
+            <div><span className="text-gray-400">Au: </span>{popover.end_datetime ? new Date(popover.end_datetime).toLocaleString('fr-FR', {dateStyle:'short',timeStyle:'short'}) : popover.end_date}</div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
