@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { setToken, isAuthenticated, removeToken } from '../utils/auth';
+import { setToken, isAuthenticated, removeToken, getToken } from '../utils/auth';
 import { API_BASE } from '../utils/config';
 import LogoCircle from '../components/LogoCircle';
 
@@ -30,6 +30,12 @@ const NAV_CARDS = [
     desc: 'Générer une facture client',
     path: '/chef/facture',
   },
+  {
+    icon: '🔔',
+    title: 'ALERTES',
+    desc: 'Suivi des échéances',
+    path: '/chef/alertes',
+  },
 ];
 
 export default function Chef() {
@@ -38,10 +44,28 @@ export default function Chef() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [urgentCount, setUrgentCount] = useState(0);
 
   useEffect(() => {
     setAuthed(isAuthenticated());
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    fetch(`${API_BASE}/api/alerts`, { headers: { 'x-admin-token': getToken() } })
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const count = data.filter(a => {
+          if (a.status !== 'active') return false;
+          const end = new Date(a.end_date); end.setHours(0, 0, 0, 0);
+          return Math.ceil((end - today) / (1000 * 60 * 60 * 24)) <= 5;
+        }).length;
+        setUrgentCount(count);
+      })
+      .catch(() => {});
+  }, [authed]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -126,7 +150,14 @@ export default function Chef() {
             <div className="flex items-center gap-4">
               <span className="text-2xl">{card.icon}</span>
               <div>
-                <div className="font-heading text-xl tracking-wider group-hover:text-white">{card.title}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-heading text-xl tracking-wider group-hover:text-white">{card.title}</div>
+                  {card.path === '/chef/alertes' && urgentCount > 0 && (
+                    <span style={{ background: '#e24b4a', color: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontFamily: 'DM Sans', fontWeight: 700, flexShrink: 0 }}>
+                      {urgentCount}
+                    </span>
+                  )}
+                </div>
                 <div className="font-body text-sm text-gray-400 group-hover:text-white/80 mt-0.5">{card.desc}</div>
               </div>
             </div>
