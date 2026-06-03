@@ -31,7 +31,10 @@ export default function Facture() {
 
   useEffect(() => {
     if (selectedResa) {
-      setReste((selectedResa.prix_total || 0) - avance);
+      const prixHT = selectedResa.prix_total || 0;
+      const tva = Math.round(prixHT * 0.20 * 100) / 100;
+      const ttc = Math.round((prixHT + tva) * 100) / 100;
+      setReste(Math.round((ttc - avance) * 100) / 100);
     }
   }, [avance, selectedResa]);
 
@@ -54,7 +57,10 @@ export default function Facture() {
   const handleResaSelect = (resa) => {
     setSelectedResa(resa);
     setAvance(0);
-    setReste(resa.prix_total || 0);
+    const prixHT = resa.prix_total || 0;
+    const tva = Math.round(prixHT * 0.20 * 100) / 100;
+    const ttc = Math.round((prixHT + tva) * 100) / 100;
+    setReste(ttc);
     setSaved(false);
   };
 
@@ -153,40 +159,51 @@ export default function Facture() {
           margin: [0, 0, 0, 16],
         },
         { text: 'DÉTAILS DE FACTURATION', style: 'sectionTitle', margin: [0, 0, 0, 10] },
-        {
-          table: {
-            widths: ['*', 150],
-            body: [
-              [{ text: 'Description', style: 'tableHeader' }, { text: 'Montant', style: 'tableHeader', alignment: 'right' }],
-              [
-                { text: `Location ${selectedResa.car_name} — ${selectedResa.nb_jours || 0} jour(s) × ${selectedResa.prix_par_jour || 0} MAD/jour`, style: 'tableCell' },
-                { text: `${selectedResa.prix_total || 0} MAD`, style: 'tableCell', alignment: 'right' },
+        (() => {
+          const prixHT = selectedResa.prix_total || 0;
+          const tva = Math.round(prixHT * 0.20 * 100) / 100;
+          const ttc = Math.round((prixHT + tva) * 100) / 100;
+          const resteAPayer = Math.round((ttc - avance) * 100) / 100;
+          return {
+            table: {
+              widths: ['*', 150],
+              body: [
+                [{ text: 'Description', style: 'tableHeader' }, { text: 'Montant', style: 'tableHeader', alignment: 'right' }],
+                [
+                  { text: `Location ${selectedResa.car_name} — ${selectedResa.nb_jours || 0} jour(s) × ${selectedResa.prix_par_jour || 0} MAD/jour`, style: 'tableCell' },
+                  { text: `${prixHT} MAD`, style: 'tableCell', alignment: 'right' },
+                ],
+                [
+                  { text: 'Total HT', style: 'tableCell', color: '#666' },
+                  { text: `${prixHT} MAD`, style: 'tableCell', alignment: 'right', color: '#333' },
+                ],
+                [
+                  { text: 'TVA (20%)', style: 'tableCell', color: '#666' },
+                  { text: `${tva} MAD`, style: 'tableCell', alignment: 'right', color: '#666' },
+                ],
+                [
+                  { text: 'Total TTC', style: 'tableCell', bold: true },
+                  { text: `${ttc} MAD`, style: 'tableCell', alignment: 'right', bold: true, color: '#333' },
+                ],
+                [
+                  { text: 'Avance versée', style: 'tableCell', color: '#666' },
+                  { text: `- ${avance} MAD`, style: 'tableCell', alignment: 'right', color: '#4CAF50' },
+                ],
+                [
+                  { text: 'RESTE À PAYER', style: 'totalLabel' },
+                  { text: `${resteAPayer} MAD`, style: 'totalAmount' },
+                ],
               ],
-              [
-                { text: 'Avance versée', style: 'tableCell', color: '#666' },
-                { text: `- ${avance} MAD`, style: 'tableCell', alignment: 'right', color: '#4CAF50' },
-              ],
-              [
-                { text: 'RESTE À PAYER', style: 'totalLabel' },
-                { text: `${reste} MAD`, style: 'totalAmount' },
-              ],
-            ],
-          },
-          layout: {
-            fillColor: (i) => i === 0 ? '#FF6B00' : i === 3 ? '#0a0a0a' : i % 2 === 0 ? '#f9f9f9' : '#fff',
-            hLineColor: () => '#ddd',
-            vLineColor: () => '#ddd',
-          },
-          margin: [0, 0, 0, 24],
-        },
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#ccc' }], margin: [0, 0, 0, 16] },
-        {
-          columns: [
-            { stack: [{ text: 'Signature Client:', style: 'signatureLabel' }, { text: '\n\n\n_______________________', style: 'signatureLine' }], width: '*', alignment: 'center' },
-            { stack: [{ text: 'Signature Loueur:', style: 'signatureLabel' }, { text: '\n\n\n_______________________', style: 'signatureLine' }], width: '*', alignment: 'center' },
-          ],
-        },
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 20, 0, 10] },
+            },
+            layout: {
+              fillColor: (i) => i === 0 ? '#FF6B00' : i === 6 ? '#0a0a0a' : i % 2 === 0 ? '#f9f9f9' : '#fff',
+              hLineColor: () => '#ddd',
+              vLineColor: () => '#ddd',
+            },
+            margin: [0, 0, 0, 24],
+          };
+        })(),
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 0, 0, 10] },
         { text: 'Domingo Cars Luxury Rent — Casablanca, Maroc — +212 701 050 809', style: 'footer', alignment: 'center' },
       ],
       styles: {
@@ -287,10 +304,19 @@ export default function Facture() {
             <label style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', display: 'block', marginBottom: '16px' }}>
               3. Détails paiement
             </label>
+            {(() => {
+              const prixHT = selectedResa.prix_total || 0;
+              const tva = Math.round(prixHT * 0.20 * 100) / 100;
+              const ttc = Math.round((prixHT + tva) * 100) / 100;
+              return (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={{ color: '#5a4a2a', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>Total</label>
-                <div style={{ color: '#FF6B00', fontFamily: '"Bebas Neue", cursive', fontSize: '28px' }}>{selectedResa.prix_total || 0} MAD</div>
+                <div style={{ color: '#FF6B00', fontFamily: '"Bebas Neue", cursive', fontSize: '28px' }}>{prixHT} MAD</div>
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{ color: '#5a4a2a', fontSize: '10px', fontFamily: 'DM Sans' }}>HT: {prixHT} MAD + TVA 20%: {tva} MAD</div>
+                  <div style={{ color: '#fff', fontSize: '12px', fontFamily: 'DM Sans', fontWeight: 500 }}>TTC: {ttc} MAD</div>
+                </div>
               </div>
               <div>
                 <label style={{ color: '#5a4a2a', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>Avance versée</label>
@@ -301,6 +327,8 @@ export default function Facture() {
                 <div style={{ color: reste > 0 ? '#e24b4a' : '#4CAF50', fontFamily: '"Bebas Neue", cursive', fontSize: '28px' }}>{reste} MAD</div>
               </div>
             </div>
+              );
+            })()}
           </div>
         )}
 
