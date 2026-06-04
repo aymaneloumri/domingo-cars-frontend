@@ -1,7 +1,7 @@
 // Uses pdfmake loaded via CDN in index.html (window.pdfMake)
 
 const LOUEUR = {
-  raisonSociale: 'Domingo Car Rent',
+  raisonSociale: 'Domingo Cars Luxury Rent',
   rc: '710225',
   ice: '003820019000072',
   if_: '37601415',
