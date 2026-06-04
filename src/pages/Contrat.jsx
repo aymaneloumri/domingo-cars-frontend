@@ -322,7 +322,47 @@ export default function Contrat() {
       const r = await api.get(`/contracts/${id}`);
       const d = r.data;
       setEditId(id);
-      setForm({ ...d, driver2_enabled: !!(d.driver2_name) });
+      const str = (v) => (v === null || v === undefined) ? '' : String(v);
+      const dt  = (v) => { if (!v) return ''; return String(v).replace(' ', 'T').slice(0, 16); };
+      setForm({
+        contract_number:       str(d.contract_number),
+        contract_date:         dt(d.contract_date),
+        car_id:                d.car_id || '',
+        brand:                 str(d.brand),
+        model:                 str(d.model),
+        category:              str(d.category) || 'Economie',
+        matricule:             str(d.matricule),
+        client_name:           str(d.client_name),
+        client_dob:            str(d.client_dob),
+        client_phone:          str(d.client_phone),
+        client_cin:            str(d.client_cin),
+        client_cin_expiry:     str(d.client_cin_expiry),
+        client_address:        str(d.client_address),
+        client_permis:         str(d.client_permis),
+        client_permis_expiry:  str(d.client_permis_expiry),
+        driver2_enabled:       !!(d.driver2_name),
+        driver2_name:          str(d.driver2_name),
+        driver2_dob:           str(d.driver2_dob),
+        driver2_phone:         str(d.driver2_phone),
+        driver2_cin:           str(d.driver2_cin),
+        driver2_cin_expiry:    str(d.driver2_cin_expiry),
+        driver2_address:       str(d.driver2_address),
+        driver2_permis:        str(d.driver2_permis),
+        driver2_permis_expiry: str(d.driver2_permis_expiry),
+        nb_days:               d.nb_days        ?? '',
+        price_per_day:         d.price_per_day  ?? '',
+        total:                 d.total          ?? '',
+        avance:                d.avance         ?? '',
+        reste:                 d.reste          ?? '',
+        depart_datetime:       dt(d.depart_datetime),
+        depart_km:             d.depart_km      ?? '',
+        depart_inspection:     str(d.depart_inspection) || 'Aucun point signalé',
+        depart_fuel:           str(d.depart_fuel)       || '4/8',
+        retour_prevu:          dt(d.retour_prevu),
+        retour_effectif:       dt(d.retour_effectif),
+        retour_km:             d.retour_km      ?? '',
+        retour_fuel:           str(d.retour_fuel)       || '4/8',
+      });
     } catch {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
