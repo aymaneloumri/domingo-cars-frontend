@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ totalCars: 0, availableToday: 0, rentedToday: 0, monthlyCount: 0 });
   const [cars, setCars] = useState([]);
   const [reservations, setReservations] = useState([]);
+  const [savedResaDashboard, setSavedResaDashboard] = useState(null);
 
   const monthStr = `${year}-${String(month).padStart(2, '0')}`;
 

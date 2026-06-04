@@ -89,6 +89,64 @@ export default function Contrat() {
   const [emailList, setEmailList] = useState(['']);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('contractFromReservation');
+    if (!stored) return;
+    try {
+      const resa = JSON.parse(stored);
+      setForm(prev => ({
+        ...prev,
+        car_id: resa.car_id || '',
+        brand: resa.brand || '',
+        model: resa.car_name || '',
+        matricule: resa.matricule || '',
+        category: resa.category || '',
+        nb_days: resa.nb_jours || 0,
+        price_per_day: resa.prix_par_jour || resa.price_per_day || 0,
+        total: resa.prix_total || 0,
+        avance: 0,
+        reste: resa.prix_total || 0,
+        depart_datetime: resa.start_datetime || (resa.start_date + 'T08:00'),
+        retour_prevu: resa.end_datetime || (resa.end_date + 'T18:00'),
+      }));
+      if (resa.client_id) {
+        const token = localStorage.getItem('token') || 'domingo2024';
+        fetch(`${API_BASE}/api/clients/${resa.client_id}`, {
+          headers: { 'x-admin-token': token },
+        })
+          .then(r => r.json())
+          .then(client => {
+            if (client) {
+              setForm(prev => ({
+                ...prev,
+                client_id: client.id,
+                client_name: client.nom_prenom,
+                client_dob: client.date_naissance || '',
+                client_phone: client.telephone || '',
+                client_cin: client.cin_passport || '',
+                client_cin_expiry: client.cin_passport_expiry || '',
+                client_address: client.adresse || '',
+                client_permis: client.permis || '',
+                client_permis_expiry: client.permis_expiry || '',
+              }));
+            }
+          });
+      } else if (resa.client_name) {
+        setForm(prev => ({
+          ...prev,
+          client_name: resa.client_name,
+          client_phone: resa.client_phone || '',
+        }));
+      }
+      setAutoFilled(true);
+      setTimeout(() => setAutoFilled(false), 5000);
+      sessionStorage.removeItem('contractFromReservation');
+    } catch (err) {
+      sessionStorage.removeItem('contractFromReservation');
+    }
+  }, []);
 
   useEffect(() => {
     api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
@@ -241,7 +299,7 @@ export default function Contrat() {
         ['driver2_name','driver2_dob','driver2_phone','driver2_cin','driver2_cin_expiry','driver2_address','driver2_permis','driver2_permis_expiry'].forEach(k => payload[k] = null);
       }
       if (editId) {
-        await api.put('/contracts', { id: editId, ...payload });
+        await api.put(`/contracts/${editId}`, payload);
         setSaveMsg('✅ Contrat mis à jour.');
         loadContracts();
       } else {
@@ -261,7 +319,7 @@ export default function Contrat() {
 
   const handleEdit = async (id) => {
     try {
-      const r = await api.get('/contracts', { params: { id } });
+      const r = await api.get(`/contracts/${id}`);
       const d = r.data;
       setEditId(id);
       setForm({ ...d, driver2_enabled: !!(d.driver2_name) });
@@ -285,6 +343,15 @@ export default function Contrat() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white pt-14">
       <ChefHeader title="CONTRATS" />
+      {autoFilled && (
+        <div style={{ position: 'fixed', top: '80px', right: '20px',
+          background: 'rgba(255,107,0,0.15)', border: '0.5px solid #FF6B00',
+          borderRadius: '8px', padding: '14px 20px', zIndex: 9999,
+          fontFamily: 'DM Sans', fontSize: '13px', color: '#FF6B00',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+          ✅ Données de la réservation importées automatiquement !
+        </div>
+      )}
       <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* ── FORM ── */}
