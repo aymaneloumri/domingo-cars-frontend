@@ -25,6 +25,22 @@ async function getLogoDataUrl() {
   }
 }
 
+async function getImageDataUrl(url) {
+  if (!url) return null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 // Label: value on a single line — no nested columns, safe in any context
 function field(label, value) {
   return {
@@ -63,7 +79,7 @@ const tLayoutV0 = {
   hLineColor: () => '#BBBBBB', vLineColor: () => '#BBBBBB',
 };
 
-function buildDocDef(d, logo) {
+function buildDocDef(d, logo, signatureImg) {
   const fmt = (dt) => dt ? dt.replace('T', ' ') : '–';
 
   const logoCell = logo
@@ -294,7 +310,9 @@ function buildDocDef(d, logo) {
             {
               stack: [
                 { text: 'Signature Loueur', bold: true, fontSize: 8.5, alignment: 'center' },
-                { text: '\n\n_______________________', fontSize: 9, color: '#888', alignment: 'center' },
+                signatureImg
+                  ? { image: signatureImg, width: 100, alignment: 'center', margin: [0, 6, 0, 0] }
+                  : { text: '\n\n_______________________', fontSize: 9, color: '#888', alignment: 'center' },
               ],
               margin: [4, 8, 4, 8],
             },
@@ -370,14 +388,20 @@ function getPdfMake() {
   throw new Error('pdfMake not loaded — vérifiez les scripts CDN dans index.html');
 }
 
-export async function previewContractPDF(data) {
+export async function previewContractPDF(data, signatureUrl) {
   const pdfMake = getPdfMake();
-  const logo = await getLogoDataUrl();
-  pdfMake.createPdf(buildDocDef(data, logo)).open();
+  const [logo, signatureImg] = await Promise.all([
+    getLogoDataUrl(),
+    getImageDataUrl(signatureUrl || null),
+  ]);
+  pdfMake.createPdf(buildDocDef(data, logo, signatureImg)).open();
 }
 
-export async function downloadContractPDF(data) {
+export async function downloadContractPDF(data, signatureUrl) {
   const pdfMake = getPdfMake();
-  const logo = await getLogoDataUrl();
-  pdfMake.createPdf(buildDocDef(data, logo)).download(`Contrat-${data.contract_number || 'DCR'}.pdf`);
+  const [logo, signatureImg] = await Promise.all([
+    getLogoDataUrl(),
+    getImageDataUrl(signatureUrl || null),
+  ]);
+  pdfMake.createPdf(buildDocDef(data, logo, signatureImg)).download(`Contrat-${data.contract_number || 'DCR'}.pdf`);
 }

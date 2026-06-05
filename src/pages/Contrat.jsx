@@ -90,6 +90,10 @@ export default function Contrat() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
+  const [includeSignature, setIncludeSignature] = useState(
+    () => localStorage.getItem('includeSignature') === 'true'
+  );
+  const [signatureUrl, setSignatureUrl] = useState('');
 
   useEffect(() => {
     const stored = sessionStorage.getItem('contractFromReservation');
@@ -151,6 +155,10 @@ export default function Contrat() {
   useEffect(() => {
     api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
     loadContracts();
+    fetch(`${API_BASE}/api/settings/signature_url`)
+      .then(r => r.json())
+      .then(d => { if (d && d.value) setSignatureUrl(d.value); })
+      .catch(() => {});
   }, []);
 
   const loadContracts = () => {
@@ -669,12 +677,34 @@ export default function Contrat() {
             }`}>{saveMsg}</div>
           )}
 
-          <div className="flex flex-wrap gap-3 mt-6">
-            <button onClick={() => previewContractPDF(form)}
+          {/* Signature toggle */}
+          <div style={{ marginTop: '20px', padding: '14px 16px', background: 'rgba(255,107,0,0.04)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !includeSignature;
+                setIncludeSignature(next);
+                localStorage.setItem('includeSignature', String(next));
+              }}
+              className={`relative w-12 h-6 rounded-full transition-colors ${includeSignature ? 'bg-[#FF6B00]' : 'bg-[#333]'}`}>
+              <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all duration-200"
+                style={{ left: includeSignature ? 26 : 2 }} />
+            </button>
+            <span className="font-body text-sm text-gray-300">Inclure signature &amp; cachet</span>
+            {includeSignature && signatureUrl && (
+              <img src={signatureUrl} alt="Signature" style={{ height: 40, maxWidth: 160, objectFit: 'contain', background: '#fff', borderRadius: 4, padding: '2px 6px', border: '0.5px solid rgba(255,107,0,0.3)' }} />
+            )}
+            {includeSignature && !signatureUrl && (
+              <span style={{ color: '#e24b4a', fontSize: 12, fontFamily: 'DM Sans' }}>⚠ Aucune signature configurée (Gestion → Paramètres)</span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-3 mt-4">
+            <button onClick={() => previewContractPDF(form, includeSignature ? signatureUrl : null)}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1a1a] border border-[#333] text-sm font-body rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">
               👁 Aperçu PDF
             </button>
-            <button onClick={async () => { await downloadContractPDF(form); }}
+            <button onClick={async () => { await downloadContractPDF(form, includeSignature ? signatureUrl : null); }}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1a1a] border border-[#333] text-sm font-body rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">
               📄 Télécharger PDF
             </button>
@@ -757,7 +787,7 @@ export default function Contrat() {
                             className="text-xs font-body px-2 py-1 bg-[#1a1a1a] border border-[#333] rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">
                             {editId === c.id ? '✎ Édition' : '✎ Modifier'}
                           </button>
-                          <button onClick={async () => { await downloadContractPDF(c); }}
+                          <button onClick={async () => { await downloadContractPDF(c, includeSignature ? signatureUrl : null); }}
                             className="text-xs font-body px-2 py-1 bg-[#1a1a1a] border border-[#333] rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">
                             📄 PDF
                           </button>

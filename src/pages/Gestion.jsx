@@ -5,7 +5,7 @@ import ChefHeader from '../components/ChefHeader';
 import ClientSelector from '../components/ClientSelector';
 const pdfMake = window.pdfMake;
 
-const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport', 'Clients'];
+const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport', 'Clients', 'Paramètres'];
 const CATEGORIES = ['Berline', 'Citadine', 'SUV', 'Utilitaire'];
 
 const MONTH_NAMES_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -129,6 +129,12 @@ export default function Gestion() {
   const [editClient, setEditClient] = useState(null);
   const [clientForm, setClientForm] = useState({ nom_prenom: '', date_naissance: '', telephone: '', cin_passport: '', cin_passport_expiry: '', adresse: '', permis: '', permis_expiry: '' });
 
+  // ── PARAMÈTRES ──
+  const [sigUrl, setSigUrl]           = useState('');
+  const [sigPreview, setSigPreview]   = useState('');
+  const [sigUploading, setSigUploading] = useState(false);
+  const [sigSaved, setSigSaved]       = useState(false);
+
   useEffect(() => { loadCars(); loadAnnouncements(); loadReservations(); }, []);
 
   // ── Shared fetch helper ──
@@ -169,6 +175,43 @@ export default function Gestion() {
       alert('Erreur lors du chargement du rapport: ' + err.message);
     } finally {
       setRapportLoading(false);
+    }
+  };
+
+  const loadSignature = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/settings/signature_url`);
+      const data = await res.json();
+      if (data && data.value) {
+        setSigUrl(data.value);
+        setSigPreview(data.value);
+      }
+    } catch {}
+  };
+
+  const handleSigFile = async (file) => {
+    if (!file) return;
+    setSigPreview(URL.createObjectURL(file));
+    setSigUploading(true);
+    setSigSaved(false);
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const res = await fetch(`${API_BASE}/api/settings/upload-signature`, {
+        method: 'POST',
+        headers: { 'x-admin-token': getToken() },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.url) {
+        setSigUrl(data.url);
+        setSigSaved(true);
+        setTimeout(() => setSigSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Signature upload error:', err);
+    } finally {
+      setSigUploading(false);
     }
   };
 
@@ -961,6 +1004,40 @@ export default function Gestion() {
             )}
           </div>
         )}
+
+        {/* ── TAB 5: PARAMÈTRES ── */}
+        {tab === 5 && (() => {
+          if (sigPreview === '' && sigUrl === '') loadSignature();
+          return (
+            <div className="max-w-xl">
+              <h2 className="font-heading text-2xl mb-6">PARAMÈTRES</h2>
+
+              <div className="bg-[#111] border border-[#222] rounded-lg p-6 space-y-5">
+                <div>
+                  <div className="text-xs text-gray-400 font-body uppercase tracking-wider mb-3">Signature & Cachet (PDF contrats)</div>
+
+                  {sigPreview ? (
+                    <div className="mb-4">
+                      <img src={sigPreview} alt="Signature" style={{ maxHeight: 120, maxWidth: 320, objectFit: 'contain', border: '0.5px solid rgba(255,107,0,0.3)', borderRadius: 6, background: '#fff', padding: 8 }} />
+                      {sigSaved && <div className="text-green-400 text-xs font-body mt-2">✓ Signature enregistrée</div>}
+                      {sigUploading && <div className="text-[#FF6B00] text-xs font-body mt-2">Chargement en cours...</div>}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-sm font-body mb-4">Aucune signature enregistrée.</div>
+                  )}
+
+                  <label
+                    style={{ display: 'inline-block', cursor: 'pointer', background: '#FF6B00', color: '#fff', padding: '10px 20px', borderRadius: 4, fontSize: 13, fontFamily: 'DM Sans', letterSpacing: 1 }}>
+                    {sigPreview ? '↺ Changer la signature' : '+ Uploader la signature'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }}
+                      onChange={e => handleSigFile(e.target.files[0])} />
+                  </label>
+                  <div className="text-xs text-gray-600 font-body mt-3">Format recommandé : PNG transparent, fond blanc, 400×200 px minimum.</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── TAB 4: CLIENTS ── */}
         {tab === 4 && (
