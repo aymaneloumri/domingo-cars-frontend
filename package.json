@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "vercel-build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "node deploy.js"
   },
   "dependencies": {
     "axios": "^1.6.7",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.17",
+    "ftp-deploy": "^2.4.7",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "vite": "^4.5.14"
