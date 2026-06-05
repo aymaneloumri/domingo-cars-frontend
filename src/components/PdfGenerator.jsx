@@ -403,5 +403,7 @@ export async function downloadContractPDF(data, signatureUrl) {
     getLogoDataUrl(),
     getImageDataUrl(signatureUrl || null),
   ]);
-  pdfMake.createPdf(buildDocDef(data, logo, signatureImg)).download(`Contrat-${data.contract_number || 'DCR'}.pdf`);
+  const clientName = data.client_name ? data.client_name.replace(/\s+/g, '_') : 'Client';
+  const filename = `Contrat_${data.contract_number || 'DCR'}_${clientName}.pdf`;
+  pdfMake.createPdf(buildDocDef(data, logo, signatureImg)).download(filename);
 }

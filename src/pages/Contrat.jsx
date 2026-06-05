@@ -94,6 +94,7 @@ export default function Contrat() {
     () => localStorage.getItem('includeSignature') === 'true'
   );
   const [signatureUrl, setSignatureUrl] = useState('');
+  const [loadingContracts, setLoadingContracts] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('contractFromReservation');
@@ -155,24 +156,28 @@ export default function Contrat() {
   useEffect(() => {
     api.get('/cars?admin=1').then(r => setCars(r.data)).catch(() => {});
     loadContracts();
-    fetch(`${API_BASE}/api/settings/signature_url`)
-      .then(r => r.json())
-      .then(d => { if (d && d.value) setSignatureUrl(d.value); })
-      .catch(() => {});
-  }, []);
-
-  const loadContracts = () => {
-    const token = getToken();
-    console.log('Contracts fetch:', `${API_BASE}/api/contracts`);
-    fetch(`${API_BASE}/api/contracts`, {
-      headers: { 'x-admin-token': token },
+    fetch(`${API_BASE}/api/settings/signature_url`, {
+      headers: { 'x-admin-token': getToken() },
     })
       .then(r => r.json())
-      .then(data => {
-        console.log('Contracts data:', data);
-        setContracts(Array.isArray(data) ? data : []);
-      })
-      .catch(err => console.error('Contracts fetch error:', err));
+      .then(d => { if (d && d.value) setSignatureUrl(d.value); })
+      .catch(console.error);
+  }, []);
+
+  const loadContracts = async () => {
+    setLoadingContracts(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/contracts`, {
+        headers: { 'x-admin-token': getToken() },
+      });
+      const data = await res.json();
+      setContracts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Contracts fetch error:', err);
+      setContracts([]);
+    } finally {
+      setLoadingContracts(false);
+    }
   };
 
   const set = (field) => (e) => {
@@ -387,9 +392,21 @@ export default function Contrat() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer ce contrat ?')) return;
-    await api.delete('/contracts', { params: { id } });
-    loadContracts();
-    if (editId === id) { setEditId(null); setForm(emptyForm()); }
+    try {
+      const res = await fetch(`${API_BASE}/api/contracts/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-token': getToken() },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setContracts(prev => prev.filter(c => c.id !== id));
+        if (editId === id) { setEditId(null); setForm(emptyForm()); }
+      } else {
+        alert('Erreur suppression: ' + (data.error || 'Inconnue'));
+      }
+    } catch (err) {
+      alert('Erreur: ' + err.message);
+    }
   };
 
   const handleNewContract = () => {
@@ -808,9 +825,14 @@ export default function Contrat() {
         {/* ── CONTRACT LIST ── */}
         <div>
           <h2 className="font-heading text-2xl mb-4">CONTRATS ENREGISTRÉS <span className="text-gray-500 text-lg">({contracts.length})</span></h2>
-          {contracts.length === 0 ? (
+          {loadingContracts && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#FF6B00', fontFamily: 'DM Sans', fontSize: 14 }}>
+              ⏳ Chargement des contrats...
+            </div>
+          )}
+          {!loadingContracts && contracts.length === 0 ? (
             <p className="text-gray-500 font-body text-sm">Aucun contrat enregistré.</p>
-          ) : (
+          ) : !loadingContracts && (
             <div className="overflow-x-auto rounded-lg border border-[#222]">
               <table className="w-full">
                 <thead className="bg-[#111] border-b border-[#222]">

@@ -130,12 +130,17 @@ export default function Gestion() {
   const [clientForm, setClientForm] = useState({ nom_prenom: '', date_naissance: '', telephone: '', cin_passport: '', cin_passport_expiry: '', adresse: '', permis: '', permis_expiry: '' });
 
   // ── PARAMÈTRES ──
-  const [sigUrl, setSigUrl]           = useState('');
-  const [sigPreview, setSigPreview]   = useState('');
-  const [sigUploading, setSigUploading] = useState(false);
-  const [sigSaved, setSigSaved]       = useState(false);
+  const [signatureUrl, setSignatureUrl]           = useState('');
+  const [signaturePreview, setSignaturePreview]   = useState('');
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [sigSaved, setSigSaved]                   = useState(false);
+  const signatureInputRef                         = useRef(null);
 
   useEffect(() => { loadCars(); loadAnnouncements(); loadReservations(); }, []);
+
+  useEffect(() => {
+    if (tab === 5 && !signatureUrl) loadSignature();
+  }, [tab]);
 
   // ── Shared fetch helper ──
   const apiFetch = async (path, options = {}) => {
@@ -180,19 +185,23 @@ export default function Gestion() {
 
   const loadSignature = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/settings/signature_url`);
+      const res = await fetch(`${API_BASE}/api/settings/signature_url`, {
+        headers: { 'x-admin-token': getToken() },
+      });
       const data = await res.json();
       if (data && data.value) {
-        setSigUrl(data.value);
-        setSigPreview(data.value);
+        setSignatureUrl(data.value);
+        setSignaturePreview(data.value);
       }
-    } catch {}
+    } catch (err) {
+      console.error('loadSignature error:', err);
+    }
   };
 
   const handleSigFile = async (file) => {
     if (!file) return;
-    setSigPreview(URL.createObjectURL(file));
-    setSigUploading(true);
+    setSignaturePreview(URL.createObjectURL(file));
+    setUploadingSignature(true);
     setSigSaved(false);
     const formData = new FormData();
     formData.append('image', file);
@@ -204,14 +213,15 @@ export default function Gestion() {
       });
       const data = await res.json();
       if (data.url) {
-        setSigUrl(data.url);
+        setSignatureUrl(data.url);
+        setSignaturePreview(data.url);
         setSigSaved(true);
         setTimeout(() => setSigSaved(false), 3000);
       }
     } catch (err) {
       console.error('Signature upload error:', err);
     } finally {
-      setSigUploading(false);
+      setUploadingSignature(false);
     }
   };
 
@@ -1006,38 +1016,71 @@ export default function Gestion() {
         )}
 
         {/* ── TAB 5: PARAMÈTRES ── */}
-        {tab === 5 && (() => {
-          if (sigPreview === '' && sigUrl === '') loadSignature();
-          return (
-            <div className="max-w-xl">
-              <h2 className="font-heading text-2xl mb-6">PARAMÈTRES</h2>
+        {tab === 5 && (
+          <div style={{ maxWidth: 560 }}>
+            <h2 className="font-heading text-2xl mb-6">PARAMÈTRES</h2>
 
-              <div className="bg-[#111] border border-[#222] rounded-lg p-6 space-y-5">
-                <div>
-                  <div className="text-xs text-gray-400 font-body uppercase tracking-wider mb-3">Signature & Cachet (PDF contrats)</div>
+            <div style={{ background: '#111', border: '0.5px solid #222', borderRadius: 8, padding: 24 }}>
+              <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'DM Sans', marginBottom: 16 }}>
+                Signature &amp; Cachet — PDF Contrats
+              </div>
 
-                  {sigPreview ? (
-                    <div className="mb-4">
-                      <img src={sigPreview} alt="Signature" style={{ maxHeight: 120, maxWidth: 320, objectFit: 'contain', border: '0.5px solid rgba(255,107,0,0.3)', borderRadius: 6, background: '#fff', padding: 8 }} />
-                      {sigSaved && <div className="text-green-400 text-xs font-body mt-2">✓ Signature enregistrée</div>}
-                      {sigUploading && <div className="text-[#FF6B00] text-xs font-body mt-2">Chargement en cours...</div>}
-                    </div>
-                  ) : (
-                    <div className="text-gray-500 text-sm font-body mb-4">Aucune signature enregistrée.</div>
+              {signaturePreview ? (
+                <div style={{ marginBottom: 16 }}>
+                  <img
+                    src={signaturePreview}
+                    alt="Signature"
+                    style={{ maxHeight: 120, maxWidth: 320, objectFit: 'contain', border: '0.5px solid rgba(255,107,0,0.3)', borderRadius: 6, background: '#fff', padding: 8, display: 'block' }}
+                  />
+                  {sigSaved && (
+                    <div style={{ color: '#4CAF50', fontSize: 12, fontFamily: 'DM Sans', marginTop: 8 }}>✓ Signature enregistrée avec succès</div>
                   )}
-
-                  <label
-                    style={{ display: 'inline-block', cursor: 'pointer', background: '#FF6B00', color: '#fff', padding: '10px 20px', borderRadius: 4, fontSize: 13, fontFamily: 'DM Sans', letterSpacing: 1 }}>
-                    {sigPreview ? '↺ Changer la signature' : '+ Uploader la signature'}
-                    <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }}
-                      onChange={e => handleSigFile(e.target.files[0])} />
-                  </label>
-                  <div className="text-xs text-gray-600 font-body mt-3">Format recommandé : PNG transparent, fond blanc, 400×200 px minimum.</div>
+                  {uploadingSignature && (
+                    <div style={{ color: '#FF6B00', fontSize: 12, fontFamily: 'DM Sans', marginTop: 8 }}>⏳ Chargement en cours...</div>
+                  )}
                 </div>
+              ) : (
+                <div
+                  onClick={() => signatureInputRef.current?.click()}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => { e.preventDefault(); handleSigFile(e.dataTransfer.files[0]); }}
+                  style={{ border: '2px dashed rgba(255,107,0,0.3)', borderRadius: 8, padding: 32, textAlign: 'center', cursor: 'pointer', background: '#0d0b08', marginBottom: 16 }}
+                >
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>✍️</div>
+                  <div style={{ color: '#5a4a2a', fontSize: 13, fontFamily: 'DM Sans' }}>Cliquez ou glissez votre signature / cachet</div>
+                  <div style={{ color: '#3a2e1e', fontSize: 11, marginTop: 4, fontFamily: 'DM Sans' }}>PNG (fond transparent recommandé) · JPEG · WEBP</div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  onClick={() => signatureInputRef.current?.click()}
+                  style={{ background: '#FF6B00', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontFamily: 'DM Sans', letterSpacing: 1 }}
+                >
+                  {signaturePreview ? '↺ Changer la signature' : '+ Uploader la signature'}
+                </button>
+                {signaturePreview && (
+                  <button
+                    onClick={() => { setSignatureUrl(''); setSignaturePreview(''); setSigSaved(false); }}
+                    style={{ background: 'transparent', color: '#e24b4a', border: '0.5px solid #e24b4a', padding: '10px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontFamily: 'DM Sans' }}
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
+              <input
+                ref={signatureInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={e => handleSigFile(e.target.files[0])}
+              />
+              <div style={{ color: '#3a2e1e', fontSize: 11, fontFamily: 'DM Sans', marginTop: 12 }}>
+                Format recommandé : PNG transparent, fond blanc, 400 × 200 px minimum.
               </div>
             </div>
-          );
-        })()}
+          </div>
+        )}
 
         {/* ── TAB 4: CLIENTS ── */}
         {tab === 4 && (
