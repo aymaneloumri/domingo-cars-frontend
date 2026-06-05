@@ -162,7 +162,17 @@ export default function Contrat() {
   }, []);
 
   const loadContracts = () => {
-    api.get('/contracts').then(r => setContracts(r.data)).catch(() => {});
+    const token = getToken();
+    console.log('Contracts fetch:', `${API_BASE}/api/contracts`);
+    fetch(`${API_BASE}/api/contracts`, {
+      headers: { 'x-admin-token': token },
+    })
+      .then(r => r.json())
+      .then(data => {
+        console.log('Contracts data:', data);
+        setContracts(Array.isArray(data) ? data : []);
+      })
+      .catch(err => console.error('Contracts fetch error:', err));
   };
 
   const set = (field) => (e) => {
@@ -678,25 +688,62 @@ export default function Contrat() {
           )}
 
           {/* Signature toggle */}
-          <div style={{ marginTop: '20px', padding: '14px 16px', background: 'rgba(255,107,0,0.04)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <button
-              type="button"
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 16px',
+            background: '#111',
+            border: '0.5px solid #2a2010',
+            borderRadius: '6px',
+            marginTop: '20px',
+            marginBottom: '16px',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div>
+              <div style={{ color: '#fff', fontSize: '13px', fontFamily: 'DM Sans', marginBottom: '2px' }}>
+                🔏 Inclure signature &amp; cachet
+              </div>
+              <div style={{ color: '#5a4a2a', fontSize: '11px', fontFamily: 'DM Sans' }}>
+                Ajouter la signature du loueur dans le PDF
+              </div>
+              {includeSignature && signatureUrl && (
+                <img src={signatureUrl} alt="Signature" style={{ height: 36, maxWidth: 140, objectFit: 'contain', background: '#fff', borderRadius: 4, padding: '2px 6px', border: '0.5px solid rgba(255,107,0,0.3)', marginTop: 8, display: 'block' }} />
+              )}
+              {includeSignature && !signatureUrl && (
+                <div style={{ color: '#e24b4a', fontSize: 11, fontFamily: 'DM Sans', marginTop: 6 }}>⚠ Aucune signature configurée (Gestion → Paramètres)</div>
+              )}
+            </div>
+            <div
               onClick={() => {
-                const next = !includeSignature;
-                setIncludeSignature(next);
-                localStorage.setItem('includeSignature', String(next));
+                const newVal = !includeSignature;
+                setIncludeSignature(newVal);
+                localStorage.setItem('includeSignature', String(newVal));
               }}
-              className={`relative w-12 h-6 rounded-full transition-colors ${includeSignature ? 'bg-[#FF6B00]' : 'bg-[#333]'}`}>
-              <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all duration-200"
-                style={{ left: includeSignature ? 26 : 2 }} />
-            </button>
-            <span className="font-body text-sm text-gray-300">Inclure signature &amp; cachet</span>
-            {includeSignature && signatureUrl && (
-              <img src={signatureUrl} alt="Signature" style={{ height: 40, maxWidth: 160, objectFit: 'contain', background: '#fff', borderRadius: 4, padding: '2px 6px', border: '0.5px solid rgba(255,107,0,0.3)' }} />
-            )}
-            {includeSignature && !signatureUrl && (
-              <span style={{ color: '#e24b4a', fontSize: 12, fontFamily: 'DM Sans' }}>⚠ Aucune signature configurée (Gestion → Paramètres)</span>
-            )}
+              style={{
+                width: '48px',
+                height: '26px',
+                borderRadius: '13px',
+                background: includeSignature ? '#FF6B00' : '#333',
+                position: 'relative',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                flexShrink: 0,
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '3px',
+                left: includeSignature ? '25px' : '3px',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                background: '#fff',
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+              }} />
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3 mt-4">
