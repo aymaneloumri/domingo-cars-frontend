@@ -3,9 +3,7 @@ import { getToken } from '../utils/auth';
 import { imgUrl, API_BASE } from '../utils/config';
 import ChefHeader from '../components/ChefHeader';
 import ClientSelector from '../components/ClientSelector';
-import pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
-pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+const pdfMake = window.pdfMake;
 
 const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport', 'Clients'];
 const CATEGORIES = ['Berline', 'Citadine', 'SUV', 'Utilitaire'];
@@ -827,11 +825,11 @@ export default function Gestion() {
                         ✅ Réservation enregistrée avec succès !
                       </div>
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        <button onClick={() => { sessionStorage.setItem('contractFromReservation', JSON.stringify(savedReservation)); window.location.href = '/chef/contrat'; }}
+                        <button type="button" onClick={() => { sessionStorage.setItem('contractFromReservation', JSON.stringify(savedReservation)); window.location.href = '/chef/contrat'; }}
                           style={{ background: '#FF6B00', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: '12px', letterSpacing: '1px' }}>
                           📄 Générer le contrat →
                         </button>
-                        <button onClick={() => { setSavedReservation(null); setResModal(false); }}
+                        <button type="button" onClick={() => { setSavedReservation(null); setResModal(false); }}
                           style={{ background: 'transparent', color: '#666', border: '0.5px solid #333', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: '12px' }}>
                           Fermer
                         </button>

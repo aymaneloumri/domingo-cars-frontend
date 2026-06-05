@@ -8,8 +8,9 @@ const config = {
   port: 21,
   localRoot: __dirname + '/dist',
   remoteRoot: '/public_html/',
-  include: ['*', '**/*'],
-  deleteRemote: true,
+  include: ['*', '**/*', '.htaccess'],
+  exclude: [],
+  deleteRemote: false,
   forcePasv: true
 }
 

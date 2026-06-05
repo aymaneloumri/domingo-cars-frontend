@@ -3,9 +3,7 @@ import ChefHeader from '../components/ChefHeader';
 import ClientSelector from '../components/ClientSelector';
 import { API_BASE } from '../utils/config';
 import { getToken } from '../utils/auth';
-import pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
-pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+const pdfMake = window.pdfMake;
 
 export default function Facture() {
   const token = getToken();

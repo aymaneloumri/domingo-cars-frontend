@@ -7,5 +7,8 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      external: ['pdfmake/build/pdfmake', 'pdfmake/build/vfs_fonts'],
+    },
   },
 })
