@@ -353,33 +353,34 @@ export default function Gestion() {
       return;
     }
     try {
+      const car = cars.find(c => c.id == resForm.car_id);
+      const resaData = {
+        car_id: resForm.car_id,
+        car_name: car?.name || '',
+        matricule: car?.matricule || '',
+        category: car?.category || '',
+        brand: car?.name?.split(' ')[0] || '',
+        price_per_day: car?.price_per_day || 0,
+        client_id: resForm.client_id || null,
+        client_name: resForm.client_name,
+        client_phone: resForm.client_phone,
+        start_datetime: resForm.start_datetime,
+        end_datetime: resForm.end_datetime,
+        start_date: resForm.start_date,
+        end_date: resForm.end_date,
+        nb_jours: resForm.nb_jours,
+        prix_par_jour: resForm.prix_par_jour,
+        prix_total: resForm.prix_total,
+      };
       if (editRes) {
         await apiFetch(`/reservations/${editRes.id}`, { method: 'PUT', body: JSON.stringify(resForm) });
+        setSavedReservation({ id: editRes.id, ...resaData });
         setResModal(false);
         loadReservations();
       } else {
         const data = await apiFetch('/reservations', { method: 'POST', body: JSON.stringify(resForm) });
-        const car = cars.find(c => c.id == resForm.car_id);
-        setSavedReservation({
-          id: data.id,
-          car_id: resForm.car_id,
-          car_name: car?.name || '',
-          matricule: car?.matricule || '',
-          category: car?.category || '',
-          brand: car?.name?.split(' ')[0] || '',
-          price_per_day: car?.price_per_day || 0,
-          client_id: resForm.client_id || null,
-          client_name: resForm.client_name,
-          client_phone: resForm.client_phone,
-          start_datetime: resForm.start_datetime,
-          end_datetime: resForm.end_datetime,
-          start_date: resForm.start_date,
-          end_date: resForm.end_date,
-          nb_jours: resForm.nb_jours,
-          prix_par_jour: resForm.prix_par_jour,
-          prix_total: resForm.prix_total,
-          status: resForm.status,
-        });
+        setSavedReservation({ id: data.id, ...resaData });
+        setResModal(false);
         loadReservations();
       }
     } catch (err) {
@@ -819,25 +820,26 @@ export default function Gestion() {
                     <button type="button" onClick={() => { setResModal(false); setSavedReservation(null); }} className="flex-1 border border-[#444] text-gray-400 font-body py-2 rounded hover:border-[#666]">Annuler</button>
                     <button type="submit" className="flex-1 bg-[#FF6B00] text-white font-body font-semibold py-2 rounded hover:bg-orange-500">{editRes ? 'Enregistrer' : 'Créer'}</button>
                   </div>
-                  {savedReservation && (
-                    <div style={{ padding: '16px', background: 'rgba(76,175,80,0.1)', border: '0.5px solid #4CAF50', borderRadius: '6px', marginTop: '12px' }}>
-                      <div style={{ color: '#4CAF50', fontSize: '13px', fontFamily: 'DM Sans', marginBottom: '12px', fontWeight: 500 }}>
-                        ✅ Réservation enregistrée avec succès !
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button type="button" onClick={() => { sessionStorage.setItem('contractFromReservation', JSON.stringify(savedReservation)); window.location.href = '/chef/contrat'; }}
-                          style={{ background: '#FF6B00', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: '12px', letterSpacing: '1px' }}>
-                          📄 Générer le contrat →
-                        </button>
-                        <button type="button" onClick={() => { setSavedReservation(null); setResModal(false); }}
-                          style={{ background: 'transparent', color: '#666', border: '0.5px solid #333', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: '12px' }}>
-                          Fermer
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </form>
               </Modal>
+            )}
+
+            {savedReservation && (
+              <div style={{ padding: '16px', background: 'rgba(76,175,80,0.1)', border: '0.5px solid #4CAF50', borderRadius: '6px', marginTop: '16px' }}>
+                <div style={{ color: '#4CAF50', fontSize: '13px', fontFamily: 'DM Sans', marginBottom: '12px', fontWeight: 500 }}>
+                  ✅ Réservation enregistrée avec succès !
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={() => { sessionStorage.setItem('contractFromReservation', JSON.stringify(savedReservation)); window.location.href = '/chef/contrat'; }}
+                    style={{ background: '#FF6B00', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: '12px', letterSpacing: '1px' }}>
+                    📄 Générer le contrat →
+                  </button>
+                  <button type="button" onClick={() => setSavedReservation(null)}
+                    style={{ background: 'transparent', color: '#666', border: '0.5px solid #333', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: '12px' }}>
+                    Fermer
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
