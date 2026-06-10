@@ -9,6 +9,11 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       external: ['pdfmake/build/pdfmake', 'pdfmake/build/vfs_fonts'],
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
     },
   },
 })
