@@ -112,7 +112,7 @@ export default function Gestion() {
   const [reservations, setReservations] = useState([]);
   const [resModal, setResModal] = useState(false);
   const [editRes, setEditRes] = useState(null);
-  const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0 });
+  const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
   const [resConflict, setResConflict] = useState('');
   const [savedReservation, setSavedReservation] = useState(null);
 
@@ -389,13 +389,13 @@ export default function Gestion() {
   const openResAdd = () => {
     const firstCar = cars[0];
     setEditRes(null); setResConflict('');
-    setResForm({ car_id: firstCar?.id || '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0 });
+    setResForm({ car_id: firstCar?.id || '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
     setResModal(true);
   };
 
   const openResEdit = (r) => {
     setEditRes(r); setResConflict('');
-    setResForm({ car_id: r.car_id, client_id: r.client_id || '', client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, start_datetime: r.start_datetime || '', end_datetime: r.end_datetime || '', status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0 });
+    setResForm({ car_id: r.car_id, client_id: r.client_id || '', client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, start_datetime: r.start_datetime || '', end_datetime: r.end_datetime || '', status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0, caution_type: r.caution_type || 'aucune', caution_montant: r.caution_montant || 0, caution_avance: r.caution_avance || 0, caution_reste: r.caution_reste || 0, caution_rendue: r.caution_rendue || false, caution_note: r.caution_note || '', caution_cheque_numero: r.caution_cheque_numero || '', caution_document_description: r.caution_document_description || '', caution_document_recu: r.caution_document_recu || false });
     setResModal(true);
   };
 
@@ -744,7 +744,7 @@ export default function Gestion() {
               <table className="w-full">
                 <thead className="bg-[#111] border-b border-[#222]">
                   <tr>
-                    {['Voiture','Client','Téléphone','Début','Fin','Prix/j','Jours','Total','Statut','Actions'].map(h => (
+                    {['Voiture','Client','Téléphone','Début','Fin','Prix/j','Jours','Total','Statut','Caution','Actions'].map(h => (
                       <th key={h} className="text-left text-xs text-gray-400 font-body uppercase tracking-wider px-4 py-3">{h}</th>
                     ))}
                   </tr>
@@ -764,6 +764,17 @@ export default function Gestion() {
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.nb_jours ? `${r.nb_jours}j` : '–'}</td>
                       <td className="px-4 py-3 font-body text-xs text-[#FF6B00] font-semibold">{r.prix_total ? `${r.prix_total} MAD` : '–'}</td>
                       <td className="px-4 py-3"><span className={`text-xs font-body px-2 py-0.5 rounded border ${statusBadge(r.status)}`}>{statusLabel(r.status)}</span></td>
+                      <td className="px-4 py-3">
+                        {r.caution_type && r.caution_type !== 'aucune' ? (
+                          <span style={{ background: r.caution_rendue ? 'rgba(76,175,80,0.15)' : 'rgba(226,75,74,0.15)', border: `0.5px solid ${r.caution_rendue ? '#4CAF50' : '#e24b4a'}`, color: r.caution_rendue ? '#4CAF50' : '#e24b4a', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontFamily: 'DM Sans', whiteSpace: 'nowrap' }}>
+                            {r.caution_type === 'cash' ? '💵' : r.caution_type === 'cheque' ? '🏦' : '📄'}{' '}
+                            {r.caution_rendue ? 'Rendue' : 'En attente'}
+                            {r.caution_montant > 0 && ` — ${r.caution_montant} MAD`}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#3a2e1e', fontSize: '11px', fontFamily: 'DM Sans' }}>Aucune</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1.5">
                           <button onClick={() => openResEdit(r)} className="text-xs font-body px-2 py-1 bg-[#1a1a1a] border border-[#333] rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">Modifier</button>
@@ -868,6 +879,112 @@ export default function Gestion() {
                       <option value="cancelled">Annulé</option>
                     </select>
                   </Field>
+                  {/* CAUTION SECTION */}
+                  <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(255,107,0,0.03)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '6px' }}>
+                    <div style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '14px', fontFamily: 'DM Sans' }}>
+                      🔐 Caution
+                    </div>
+
+                    {/* Type dropdown */}
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Type de caution</label>
+                      <select
+                        value={resForm.caution_type}
+                        onChange={e => setResForm(p => ({ ...p, caution_type: e.target.value, caution_montant: 0, caution_avance: 0, caution_reste: 0 }))}
+                        style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px' }}
+                      >
+                        <option value="aucune">Aucune</option>
+                        <option value="cash">💵 Cash</option>
+                        <option value="cheque">🏦 Chèque</option>
+                        <option value="document">📄 Document légalisé</option>
+                      </select>
+                    </div>
+
+                    {/* CASH */}
+                    {resForm.caution_type === 'cash' && (
+                      <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                          <div>
+                            <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Montant caution (MAD)</label>
+                            <input type="number" value={resForm.caution_montant}
+                              onChange={e => { const m = parseFloat(e.target.value) || 0; setResForm(p => ({ ...p, caution_montant: m, caution_reste: m - (p.caution_avance || 0) })); }}
+                              style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px' }} />
+                          </div>
+                          <div>
+                            <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Montant avance (MAD)</label>
+                            <input type="number" value={resForm.caution_avance}
+                              onChange={e => { const a = parseFloat(e.target.value) || 0; setResForm(p => ({ ...p, caution_avance: a, caution_reste: (p.caution_montant || 0) - a })); }}
+                              style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px' }} />
+                          </div>
+                        </div>
+                        <div style={{ padding: '10px 14px', background: 'rgba(255,107,0,0.05)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '4px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#5a4a2a', fontSize: '12px', fontFamily: 'DM Sans' }}>Reste à rendre</span>
+                          <span style={{ color: resForm.caution_reste > 0 ? '#e24b4a' : '#4CAF50', fontSize: '16px', fontFamily: 'Bebas Neue' }}>{resForm.caution_reste || 0} MAD</span>
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 0' }}>
+                          <input type="checkbox" checked={resForm.caution_rendue} onChange={e => setResForm(p => ({ ...p, caution_rendue: e.target.checked }))} style={{ width: '16px', height: '16px', accentColor: '#FF6B00' }} />
+                          <span style={{ color: '#c9a87c', fontSize: '13px', fontFamily: 'DM Sans' }}>✅ Caution rendue au client</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* CHEQUE */}
+                    {resForm.caution_type === 'cheque' && (
+                      <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                          <div>
+                            <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Montant du chèque (MAD)</label>
+                            <input type="number" value={resForm.caution_montant}
+                              onChange={e => { const m = parseFloat(e.target.value) || 0; setResForm(p => ({ ...p, caution_montant: m, caution_reste: m - (p.caution_avance || 0) })); }}
+                              style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px' }} />
+                          </div>
+                          <div>
+                            <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>N° Chèque (optionnel)</label>
+                            <input type="text" value={resForm.caution_cheque_numero} onChange={e => setResForm(p => ({ ...p, caution_cheque_numero: e.target.value }))} placeholder="Ex: 0012345"
+                              style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px' }} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                          <div>
+                            <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Montant avance (MAD)</label>
+                            <input type="number" value={resForm.caution_avance}
+                              onChange={e => { const a = parseFloat(e.target.value) || 0; setResForm(p => ({ ...p, caution_avance: a, caution_reste: (p.caution_montant || 0) - a })); }}
+                              style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px' }} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
+                            <div style={{ padding: '10px 14px', background: 'rgba(255,107,0,0.05)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '4px', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#5a4a2a', fontSize: '12px', fontFamily: 'DM Sans' }}>Reste</span>
+                              <span style={{ color: resForm.caution_reste > 0 ? '#e24b4a' : '#4CAF50', fontSize: '16px', fontFamily: 'Bebas Neue' }}>{resForm.caution_reste || 0} MAD</span>
+                            </div>
+                          </div>
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 0' }}>
+                          <input type="checkbox" checked={resForm.caution_rendue} onChange={e => setResForm(p => ({ ...p, caution_rendue: e.target.checked }))} style={{ width: '16px', height: '16px', accentColor: '#FF6B00' }} />
+                          <span style={{ color: '#c9a87c', fontSize: '13px', fontFamily: 'DM Sans' }}>✅ Chèque rendu au client</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* DOCUMENT */}
+                    {resForm.caution_type === 'document' && (
+                      <div>
+                        <div style={{ marginBottom: '12px' }}>
+                          <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Description du document</label>
+                          <input type="text" value={resForm.caution_document_description} onChange={e => setResForm(p => ({ ...p, caution_document_description: e.target.value }))} placeholder="Ex: CIN originale, Passeport..."
+                            style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px' }} />
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 0', marginBottom: '8px' }}>
+                          <input type="checkbox" checked={resForm.caution_document_recu} onChange={e => setResForm(p => ({ ...p, caution_document_recu: e.target.checked }))} style={{ width: '16px', height: '16px', accentColor: '#FF6B00' }} />
+                          <span style={{ color: '#c9a87c', fontSize: '13px', fontFamily: 'DM Sans' }}>📥 Document reçu du client</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 0' }}>
+                          <input type="checkbox" checked={resForm.caution_rendue} onChange={e => setResForm(p => ({ ...p, caution_rendue: e.target.checked }))} style={{ width: '16px', height: '16px', accentColor: '#FF6B00' }} />
+                          <span style={{ color: '#c9a87c', fontSize: '13px', fontFamily: 'DM Sans' }}>✅ Document rendu au client</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
                   {resConflict && <div className="text-yellow-400 text-xs font-body bg-yellow-400/10 border border-yellow-400/30 p-2 rounded">{resConflict}</div>}
                   <div className="flex gap-3 pt-2">
                     <button type="button" onClick={() => { setResModal(false); setSavedReservation(null); }} className="flex-1 border border-[#444] text-gray-400 font-body py-2 rounded hover:border-[#666]">Annuler</button>
