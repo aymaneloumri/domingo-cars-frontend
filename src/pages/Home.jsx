@@ -458,7 +458,7 @@ export default function Home() {
         {/* Bottom bar */}
         <div style={{ borderTop: '1px solid #1a1208', paddingTop: 20, textAlign: 'center' }}>
           <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 10, color: '#3a2e1e' }}>
-            © {new Date().getFullYear()} Domingo Cars Luxury Rent — Casablanca, Maroc
+            © {new Date().getFullYear()} Domingo Cars Luxury Rent — Casablanca, Maroc · Tous droits réservés
           </span>
         </div>
       </footer>
