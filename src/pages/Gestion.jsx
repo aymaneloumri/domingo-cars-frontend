@@ -117,6 +117,10 @@ export default function Gestion() {
   const [resConflict, setResConflict] = useState('');
   const [savedReservation, setSavedReservation] = useState(null);
 
+  // ── STATS DASHBOARD ──
+  const [stats, setStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
   // ── RAPPORT ──
   const nowDate = new Date();
   const [rapportMonth, setRapportMonth] = useState(`${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`);
@@ -137,7 +141,23 @@ export default function Gestion() {
   const [sigSaved, setSigSaved]                   = useState(false);
   const signatureInputRef                         = useRef(null);
 
-  useEffect(() => { loadCars(); loadAnnouncements(); loadReservations(); }, []);
+  useEffect(() => {
+    loadCars(); loadAnnouncements(); loadReservations();
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/dashboard/gestion-stats`, {
+          headers: { 'x-admin-token': getToken() },
+        });
+        const data = await res.json();
+        setStats(data);
+      } catch (err) {
+        console.error('Stats error:', err);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   useEffect(() => {
     if (tab === 5 && !signatureUrl) loadSignature();
@@ -534,6 +554,128 @@ export default function Gestion() {
       <ChefHeader title="GESTION" />
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+
+        {/* ── STATS DASHBOARD ── */}
+        {loadingStats && (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: '#FF6B00', fontFamily: 'DM Sans', fontSize: 13 }}>
+            ⏳ Chargement des statistiques...
+          </div>
+        )}
+        {stats && (
+          <div style={{ marginBottom: '32px' }}>
+
+            {/* ROW 1 — KPI Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+              {[
+                { label: 'Réservations ce mois',   value: stats.reservations.ce_mois,                               icon: '📅', color: '#FF6B00' },
+                { label: "En cours aujourd'hui",    value: stats.reservations.aujourd_hui,                           icon: '🚗', color: '#FF6B00' },
+                { label: 'Revenu ce mois',          value: `${stats.revenus.ce_mois.toLocaleString('fr-MA')} MAD`,   icon: '💰', color: '#4CAF50' },
+                { label: 'Clients total',           value: stats.clients.total,                                      icon: '👥', color: '#FF6B00' },
+              ].map((kpi, i) => (
+                <div key={i} style={{ background: '#111', border: '0.5px solid #2a2010', borderRadius: '8px', padding: '16px', borderLeft: `3px solid ${kpi.color}` }}>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>{kpi.icon}</div>
+                  <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
+                  <div style={{ color: '#5a4a2a', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'DM Sans', marginTop: '4px' }}>{kpi.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* ROW 2 — Secondary KPIs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+              {[
+                { label: 'À venir cette semaine',       value: stats.reservations.cette_semaine,                              icon: '📆', color: '#FFC107' },
+                { label: 'Nouveaux clients ce mois',    value: stats.clients.nouveaux_ce_mois,                                icon: '🆕', color: '#4CAF50' },
+                { label: 'Cautions en attente',         value: stats.cautions.en_attente,                                     icon: '🔐', color: stats.cautions.en_attente > 0 ? '#e24b4a' : '#4CAF50' },
+                { label: 'Montant cautions',            value: `${stats.cautions.montant_total.toLocaleString('fr-MA')} MAD`, icon: '💵', color: '#FF6B00' },
+              ].map((kpi, i) => (
+                <div key={i} style={{ background: '#111', border: '0.5px solid #2a2010', borderRadius: '8px', padding: '16px', borderLeft: `3px solid ${kpi.color}` }}>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>{kpi.icon}</div>
+                  <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
+                  <div style={{ color: '#5a4a2a', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'DM Sans', marginTop: '4px' }}>{kpi.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* ROW 3 — Charts + Tables */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+
+              {/* Revenus 6 mois */}
+              <div style={{ background: '#111', border: '0.5px solid #2a2010', borderRadius: '8px', padding: '16px' }}>
+                <div style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'DM Sans', marginBottom: '12px' }}>
+                  📈 Revenus 6 derniers mois
+                </div>
+                {stats.revenus.six_mois.length > 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px' }}>
+                    {stats.revenus.six_mois.map((m, i) => {
+                      const maxVal = Math.max(...stats.revenus.six_mois.map(x => x.total));
+                      const height = maxVal > 0 ? (m.total / maxVal) * 70 : 4;
+                      return (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ width: '100%', height: `${height}px`, background: i === stats.revenus.six_mois.length - 1 ? '#FF6B00' : '#2a2010', borderRadius: '2px', minHeight: '4px' }} />
+                          <div style={{ color: '#3a2e1e', fontSize: '9px', fontFamily: 'DM Sans', textAlign: 'center' }}>{m.mois?.slice(5)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ color: '#3a2e1e', fontSize: '12px', fontFamily: 'DM Sans', textAlign: 'center', paddingTop: '20px' }}>Pas encore de données</div>
+                )}
+              </div>
+
+              {/* Top voitures */}
+              <div style={{ background: '#111', border: '0.5px solid #2a2010', borderRadius: '8px', padding: '16px' }}>
+                <div style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'DM Sans', marginBottom: '12px' }}>
+                  🚗 Revenus par voiture ce mois
+                </div>
+                {stats.revenus.par_voiture.slice(0, 5).map((car, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid #1a1a1a' }}>
+                    <div style={{ color: car.total > 0 ? '#c9a87c' : '#3a2e1e', fontSize: '12px', fontFamily: 'DM Sans' }}>
+                      {i === 0 && car.total > 0 ? '🏆 ' : ''}{car.car_name}
+                    </div>
+                    <div style={{ color: car.total > 0 ? '#FF6B00' : '#3a2e1e', fontSize: '12px', fontFamily: 'Bebas Neue' }}>
+                      {car.total > 0 ? `${parseInt(car.total).toLocaleString('fr-MA')} MAD` : '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Top clients */}
+              <div style={{ background: '#111', border: '0.5px solid #2a2010', borderRadius: '8px', padding: '16px' }}>
+                <div style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'DM Sans', marginBottom: '12px' }}>
+                  👥 Clients les plus fréquents
+                </div>
+                {stats.clients.frequents.length > 0 ? (
+                  stats.clients.frequents.map((cl, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid #1a1a1a' }}>
+                      <div style={{ color: '#c9a87c', fontSize: '12px', fontFamily: 'DM Sans' }}>{i === 0 ? '⭐ ' : ''}{cl.nom_prenom}</div>
+                      <div style={{ color: '#5a4a2a', fontSize: '11px', fontFamily: 'DM Sans' }}>{cl.nb_reservations} rés.</div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: '#3a2e1e', fontSize: '12px', fontFamily: 'DM Sans', textAlign: 'center', paddingTop: '20px' }}>Pas encore de données</div>
+                )}
+              </div>
+            </div>
+
+            {/* ROW 4 — Alerts */}
+            {(stats.reservations.sans_fin > 0 || stats.cautions.en_attente > 0 || stats.flotte.indisponibles_aujourd_hui > 0) && (
+              <div style={{ padding: '14px 16px', background: 'rgba(226,75,74,0.05)', border: '0.5px solid rgba(226,75,74,0.3)', borderRadius: '8px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                <div style={{ color: '#e24b4a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'DM Sans', width: '100%', marginBottom: '8px' }}>⚠️ Points d'attention</div>
+                {stats.reservations.sans_fin > 0 && (
+                  <div style={{ color: '#FFC107', fontSize: '12px', fontFamily: 'DM Sans' }}>📌 {stats.reservations.sans_fin} réservation(s) sans date de fin</div>
+                )}
+                {stats.cautions.en_attente > 0 && (
+                  <div style={{ color: '#e24b4a', fontSize: '12px', fontFamily: 'DM Sans' }}>🔐 {stats.cautions.en_attente} caution(s) en attente de retour</div>
+                )}
+                {stats.flotte.indisponibles_aujourd_hui > 0 && (
+                  <div style={{ color: '#FF6B00', fontSize: '12px', fontFamily: 'DM Sans' }}>🚗 {stats.flotte.indisponibles_aujourd_hui}/{stats.flotte.total} voiture(s) en location aujourd'hui</div>
+                )}
+              </div>
+            )}
+
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-[#111] border border-[#222] rounded-lg p-1 w-fit">
           {TABS.map((t, i) => (
