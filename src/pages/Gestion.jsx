@@ -799,7 +799,7 @@ export default function Gestion() {
                         setResForm(p => ({ ...p, car_id: parseInt(e.target.value), prix_par_jour: ppj, ...pricing }));
                       }}>
                       <option value="">Sélectionner une voiture</option>
-                      {cars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      {cars.map(c => <option key={c.id} value={c.id}>{c.name}{c.matricule ? ` — ${c.matricule}` : ''}</option>)}
                     </select>
                   </Field>
                   <Field label="Client existant">
