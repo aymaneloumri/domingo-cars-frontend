@@ -112,6 +112,7 @@ export default function Gestion() {
   const [reservations, setReservations] = useState([]);
   const [resModal, setResModal] = useState(false);
   const [editRes, setEditRes] = useState(null);
+  const [sansFinReservation, setSansFinReservation] = useState(false);
   const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
   const [resConflict, setResConflict] = useState('');
   const [savedReservation, setSavedReservation] = useState(null);
@@ -388,13 +389,14 @@ export default function Gestion() {
   // ── RES handlers ──
   const openResAdd = () => {
     const firstCar = cars[0];
-    setEditRes(null); setResConflict('');
+    setEditRes(null); setResConflict(''); setSansFinReservation(false);
     setResForm({ car_id: firstCar?.id || '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
     setResModal(true);
   };
 
   const openResEdit = (r) => {
     setEditRes(r); setResConflict('');
+    setSansFinReservation(!r.end_date && !r.end_datetime);
     setResForm({ car_id: r.car_id, client_id: r.client_id || '', client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, start_datetime: r.start_datetime || '', end_datetime: r.end_datetime || '', status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0, caution_type: r.caution_type || 'aucune', caution_montant: r.caution_montant || 0, caution_avance: r.caution_avance || 0, caution_reste: r.caution_reste || 0, caution_rendue: r.caution_rendue || false, caution_note: r.caution_note || '', caution_cheque_numero: r.caution_cheque_numero || '', caution_document_description: r.caution_document_description || '', caution_document_recu: r.caution_document_recu || false });
     setResModal(true);
   };
@@ -759,7 +761,11 @@ export default function Gestion() {
                           className="font-body text-xs text-green-400 hover:underline">{r.client_phone}</a>
                       </td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.start_datetime ? new Date(r.start_datetime).toLocaleString('fr-FR', {dateStyle:'short',timeStyle:'short'}) : r.start_date}</td>
-                      <td className="px-4 py-3 font-body text-xs text-gray-400">{r.end_datetime ? new Date(r.end_datetime).toLocaleString('fr-FR', {dateStyle:'short',timeStyle:'short'}) : r.end_date}</td>
+                      <td className="px-4 py-3 font-body text-xs text-gray-400">
+                        {r.end_datetime || r.end_date
+                          ? new Date(r.end_datetime || r.end_date).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+                          : <span style={{ color: '#FF6B00', fontSize: '11px', fontFamily: 'DM Sans', fontStyle: 'italic' }}>📌 Sans fin</span>}
+                      </td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.prix_par_jour ? `${r.prix_par_jour} MAD` : '–'}</td>
                       <td className="px-4 py-3 font-body text-xs text-gray-400">{r.nb_jours ? `${r.nb_jours}j` : '–'}</td>
                       <td className="px-4 py-3 font-body text-xs text-[#FF6B00] font-semibold">{r.prix_total ? `${r.prix_total} MAD` : '–'}</td>
@@ -826,8 +832,32 @@ export default function Gestion() {
                           setResConflict('');
                         }} />
                     </Field>
-                    <Field label="Date et heure de fin *">
-                      <input required type="datetime-local" className={inputCls} value={resForm.end_datetime}
+                    <div style={{ marginBottom: '0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'DM Sans' }}>
+                          Date et heure de fin
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={sansFinReservation}
+                            onChange={e => {
+                              setSansFinReservation(e.target.checked);
+                              if (e.target.checked) {
+                                setResForm(p => ({ ...p, end_datetime: '', end_date: '', nb_jours: 0, prix_total: 0 }));
+                                setResConflict('');
+                              }
+                            }}
+                            style={{ accentColor: '#FF6B00' }}
+                          />
+                          <span style={{ color: '#FF6B00', fontSize: '11px', fontFamily: 'DM Sans' }}>Sans fin</span>
+                        </label>
+                      </div>
+                      <input
+                        type="datetime-local"
+                        value={resForm.end_datetime || ''}
+                        disabled={sansFinReservation}
+                        required={!sansFinReservation}
                         min={resForm.start_datetime || ''}
                         onChange={e => {
                           const val = e.target.value;
@@ -841,8 +871,15 @@ export default function Gestion() {
                             setResForm(p => ({ ...p, end_datetime: val, end_date: endDate }));
                           }
                           setResConflict('');
-                        }} />
-                    </Field>
+                        }}
+                        style={{ width: '100%', background: sansFinReservation ? '#1a1a1a' : '#0A0A0A', border: '1px solid #333', color: sansFinReservation ? '#3a3a3a' : '#fff', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px', cursor: sansFinReservation ? 'not-allowed' : 'pointer', opacity: sansFinReservation ? 0.5 : 1 }}
+                      />
+                      {sansFinReservation && (
+                        <div style={{ color: '#FF6B00', fontSize: '11px', fontFamily: 'DM Sans', marginTop: '4px', fontStyle: 'italic' }}>
+                          📌 Réservation sans date de fin définie
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {(resForm.nb_jours > 0 || resForm.prix_total > 0) && (
                     <div style={{ display: 'flex', gap: '24px', padding: '10px 14px', background: 'rgba(255,107,0,0.05)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '4px' }}>
