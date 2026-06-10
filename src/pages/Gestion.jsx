@@ -630,7 +630,7 @@ export default function Gestion() {
                 {stats.revenus.par_voiture.slice(0, 5).map((car, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid #1a1a1a' }}>
                     <div style={{ color: car.total > 0 ? '#c9a87c' : '#3a2e1e', fontSize: '12px', fontFamily: 'DM Sans' }}>
-                      {i === 0 && car.total > 0 ? '🏆 ' : ''}{car.car_name}
+                      {i === 0 && car.total > 0 ? '🏆 ' : ''}{car.car_name}{car.matricule ? ` — ${car.matricule}` : ''}
                     </div>
                     <div style={{ color: car.total > 0 ? '#FF6B00' : '#3a2e1e', fontSize: '12px', fontFamily: 'Bebas Neue' }}>
                       {car.total > 0 ? `${parseInt(car.total).toLocaleString('fr-MA')} MAD` : '—'}
