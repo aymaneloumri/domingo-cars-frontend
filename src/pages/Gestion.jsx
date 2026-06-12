@@ -307,17 +307,32 @@ export default function Gestion() {
   };
 
   const handleBlacklist = async () => {
-    if (!selectedToBlacklist) return;
-    await fetch(`${API_BASE}/api/clients/${selectedToBlacklist.id}/blacklist`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': getToken() },
-      body: JSON.stringify({ reason: blacklistReason }),
-    });
-    setSelectedToBlacklist(null);
-    setBlacklistReason('');
-    setBlacklistSearch('');
-    setBlacklistSearchResults([]);
-    fetchBlacklisted();
+    if (!selectedToBlacklist) {
+      console.log('No client selected');
+      return;
+    }
+    console.log('Blacklisting client:', selectedToBlacklist.id, selectedToBlacklist.nom_prenom);
+    try {
+      const res = await fetch(`${API_BASE}/api/clients/${selectedToBlacklist.id}/blacklist`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': getToken() },
+        body: JSON.stringify({ reason: blacklistReason }),
+      });
+      const data = await res.json();
+      console.log('Blacklist response:', data);
+      if (data.success) {
+        setSelectedToBlacklist(null);
+        setBlacklistReason('');
+        setBlacklistSearch('');
+        setBlacklistSearchResults([]);
+        fetchBlacklisted();
+      } else {
+        alert('Erreur: ' + JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error('Blacklist error:', err);
+      alert('Erreur: ' + err.message);
+    }
   };
 
   const handleUnblacklist = async (id) => {
