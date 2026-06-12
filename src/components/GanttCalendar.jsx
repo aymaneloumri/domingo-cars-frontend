@@ -4,7 +4,7 @@ import { getToken } from '../utils/auth';
 
 const DAY_W = 44;
 const ROW_H = 56;
-const SIDEBAR_W = 176;
+const SIDEBAR_W = 200;
 
 function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
@@ -139,12 +139,21 @@ export default function GanttCalendar({
         </div>
         {cars.map(car => (
           <div key={car.id} style={{ height: ROW_H }}
-            className="flex items-center px-3 gap-2 border-b border-[#1a1a1a]">
+            className="flex items-center gap-2 border-b border-[#1a1a1a]">
             {car.image_url && (
-              <img src={car.image_url} alt="" className="w-8 h-6 object-cover rounded flex-shrink-0"
+              <img src={car.image_url} alt="" className="w-8 h-6 object-cover rounded flex-shrink-0 ml-2"
                 onError={e => e.target.style.display = 'none'} />
             )}
-            <span className="text-xs font-body text-gray-300 truncate">{car.name}{car.matricule ? ` — ${car.matricule}` : ''}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+              <div style={{ color: '#fff', fontSize: '12px', fontFamily: 'DM Sans', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {car.name}
+              </div>
+              {car.matricule && (
+                <div style={{ color: '#FF6B00', fontSize: '10px', fontFamily: 'DM Sans', whiteSpace: 'nowrap' }}>
+                  {car.matricule}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
