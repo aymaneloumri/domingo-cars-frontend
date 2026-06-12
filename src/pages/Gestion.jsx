@@ -113,7 +113,7 @@ export default function Gestion() {
   const [resModal, setResModal] = useState(false);
   const [editRes, setEditRes] = useState(null);
   const [sansFinReservation, setSansFinReservation] = useState(false);
-  const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
+  const [resForm, setResForm] = useState({ car_id: '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: 0, nb_jours: 0, prix_total: 0, avance: 0, reste: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
   const [resConflict, setResConflict] = useState('');
   const [savedReservation, setSavedReservation] = useState(null);
 
@@ -500,14 +500,14 @@ export default function Gestion() {
   const openResAdd = () => {
     const firstCar = cars[0];
     setEditRes(null); setResConflict(''); setSansFinReservation(false);
-    setResForm({ car_id: firstCar?.id || '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
+    setResForm({ car_id: firstCar?.id || '', client_id: '', client_name: '', client_phone: '', start_date: '', end_date: '', start_datetime: '', end_datetime: '', status: 'pending', prix_par_jour: firstCar?.price_per_day || 0, nb_jours: 0, prix_total: 0, avance: 0, reste: 0, caution_type: 'aucune', caution_montant: 0, caution_avance: 0, caution_reste: 0, caution_rendue: false, caution_note: '', caution_cheque_numero: '', caution_document_description: '', caution_document_recu: false });
     setResModal(true);
   };
 
   const openResEdit = (r) => {
     setEditRes(r); setResConflict('');
     setSansFinReservation(!r.end_date && !r.end_datetime);
-    setResForm({ car_id: r.car_id, client_id: r.client_id || '', client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, start_datetime: r.start_datetime || '', end_datetime: r.end_datetime || '', status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0, caution_type: r.caution_type || 'aucune', caution_montant: r.caution_montant || 0, caution_avance: r.caution_avance || 0, caution_reste: r.caution_reste || 0, caution_rendue: r.caution_rendue || false, caution_note: r.caution_note || '', caution_cheque_numero: r.caution_cheque_numero || '', caution_document_description: r.caution_document_description || '', caution_document_recu: r.caution_document_recu || false });
+    setResForm({ car_id: r.car_id, client_id: r.client_id || '', client_name: r.client_name, client_phone: r.client_phone, start_date: r.start_date, end_date: r.end_date, start_datetime: r.start_datetime || '', end_datetime: r.end_datetime || '', status: r.status, prix_par_jour: r.prix_par_jour || 0, nb_jours: r.nb_jours || 0, prix_total: r.prix_total || 0, avance: r.avance || 0, reste: r.reste || 0, caution_type: r.caution_type || 'aucune', caution_montant: r.caution_montant || 0, caution_avance: r.caution_avance || 0, caution_reste: r.caution_reste || 0, caution_rendue: r.caution_rendue || false, caution_note: r.caution_note || '', caution_cheque_numero: r.caution_cheque_numero || '', caution_document_description: r.caution_document_description || '', caution_document_recu: r.caution_document_recu || false });
     setResModal(true);
   };
 
@@ -536,6 +536,8 @@ export default function Gestion() {
         nb_jours: resForm.nb_jours,
         prix_par_jour: resForm.prix_par_jour,
         prix_total: resForm.prix_total,
+        avance: resForm.avance || 0,
+        reste: resForm.reste || 0,
       };
       if (editRes) {
         await apiFetch(`/reservations/${editRes.id}`, { method: 'PUT', body: JSON.stringify(resForm) });
@@ -1047,7 +1049,7 @@ export default function Gestion() {
                           if (resForm.start_datetime && val) {
                             const d = calculateNbJours(resForm.start_datetime, val);
                             const total = d * (resForm.prix_par_jour || 0);
-                            setResForm(p => ({ ...p, end_datetime: val, end_date: endDate, nb_jours: d, prix_total: total }));
+                            setResForm(p => ({ ...p, end_datetime: val, end_date: endDate, nb_jours: d, prix_total: total, reste: total - (p.avance || 0) }));
                           } else {
                             setResForm(p => ({ ...p, end_datetime: val, end_date: endDate }));
                           }
@@ -1074,13 +1076,34 @@ export default function Gestion() {
                       </div>
                     </div>
                   )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '4px' }}>
+                    <div>
+                      <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Avance versée (MAD)</label>
+                      <input
+                        type="number"
+                        value={resForm.avance}
+                        onChange={e => {
+                          const avance = parseFloat(e.target.value) || 0;
+                          const reste = (resForm.prix_total || 0) - avance;
+                          setResForm(p => ({ ...p, avance, reste }));
+                        }}
+                        style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '8px 12px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '12px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ color: '#5a4a2a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px', fontFamily: 'DM Sans' }}>Reste à payer (MAD)</label>
+                      <div style={{ padding: '8px 12px', background: 'rgba(255,107,0,0.05)', border: '0.5px solid rgba(255,107,0,0.2)', borderRadius: '4px', color: (resForm.reste || 0) > 0 ? '#e24b4a' : '#4CAF50', fontFamily: '"Bebas Neue", cursive', fontSize: '18px' }}>
+                        {resForm.reste || 0} MAD
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     <Field label="Prix/jour (MAD)">
                       <input type="number" className={inputCls} value={resForm.prix_par_jour}
                         onChange={e => {
                           const ppj = parseFloat(e.target.value) || 0;
                           const total = (resForm.nb_jours || 0) * ppj;
-                          setResForm(p => ({ ...p, prix_par_jour: ppj, prix_total: total }));
+                          setResForm(p => ({ ...p, prix_par_jour: ppj, prix_total: total, reste: total - (p.avance || 0) }));
                         }} />
                     </Field>
                     <Field label="Nb jours">

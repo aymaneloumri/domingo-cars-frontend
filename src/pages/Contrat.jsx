@@ -111,8 +111,8 @@ export default function Contrat() {
         nb_days: resa.nb_jours || 0,
         price_per_day: resa.prix_par_jour || resa.price_per_day || 0,
         total: resa.prix_total || 0,
-        avance: 0,
-        reste: resa.prix_total || 0,
+        avance: resa.avance || 0,
+        reste: resa.reste != null ? resa.reste : (resa.prix_total || 0),
         depart_datetime: resa.start_datetime || (resa.start_date + 'T08:00'),
         retour_prevu: resa.end_datetime || (resa.end_date + 'T18:00'),
       }));
@@ -296,8 +296,8 @@ export default function Contrat() {
       nb_days: resa.nb_jours || 0,
       price_per_day: resa.prix_par_jour || resa.price_per_day || 0,
       total: resa.prix_total || 0,
-      avance: 0,
-      reste: resa.prix_total || 0,
+      avance: resa.avance || 0,
+      reste: resa.reste != null ? resa.reste : (resa.prix_total || 0),
       depart_datetime: resa.start_datetime
         ? resa.start_datetime.slice(0, 16)
         : resa.start_date ? resa.start_date + 'T08:00' : prev.depart_datetime,
