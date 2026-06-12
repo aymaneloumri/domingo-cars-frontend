@@ -144,7 +144,7 @@ export default function GanttCalendar({
               <img src={car.image_url} alt="" className="w-8 h-6 object-cover rounded flex-shrink-0"
                 onError={e => e.target.style.display = 'none'} />
             )}
-            <span className="text-xs font-body text-gray-300 truncate">{car.name}</span>
+            <span className="text-xs font-body text-gray-300 truncate">{car.name}{car.matricule ? ` — ${car.matricule}` : ''}</span>
           </div>
         ))}
       </div>

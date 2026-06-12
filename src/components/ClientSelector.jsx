@@ -36,6 +36,12 @@ export default function ClientSelector({ onSelect, token, placeholder, value }) 
   }, [search, token])
 
   const handleSelect = (client) => {
+    if (client.blacklisted) {
+      const ok = window.confirm(
+        `⚠️ ATTENTION: Client BLACKLISTÉ!\n\nRaison: ${client.blacklist_reason || 'Non spécifiée'}\n\nContinuer quand même?`
+      )
+      if (!ok) return
+    }
     setSelected(client)
     setSearch(client.nom_prenom)
     setOpen(false)
@@ -75,8 +81,8 @@ export default function ClientSelector({ onSelect, token, placeholder, value }) 
               style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '0.5px solid #1a1a1a', transition: 'background 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.background = '#1a1508'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <div style={{ color: '#fff', fontSize: '13px', fontFamily: 'DM Sans', fontWeight: 500 }}>
-                {client.nom_prenom}
+              <div style={{ color: client.blacklisted ? '#e24b4a' : '#fff', fontSize: '13px', fontFamily: 'DM Sans', fontWeight: 500 }}>
+                {client.blacklisted ? '🚫 ' : ''}{client.nom_prenom}
               </div>
               <div style={{ color: '#5a4a2a', fontSize: '11px', fontFamily: 'DM Sans', marginTop: '2px' }}>
                 {client.cin_passport && `CIN: ${client.cin_passport}`}

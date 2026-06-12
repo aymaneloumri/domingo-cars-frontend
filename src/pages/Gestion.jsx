@@ -134,12 +134,22 @@ export default function Gestion() {
   const [editClient, setEditClient] = useState(null);
   const [clientForm, setClientForm] = useState({ nom_prenom: '', date_naissance: '', telephone: '', cin_passport: '', cin_passport_expiry: '', adresse: '', permis: '', permis_expiry: '' });
 
+  // ── RESERVATIONS SEARCH ──
+  const [reservationSearch, setReservationSearch] = useState('');
+
   // ── PARAMÈTRES ──
   const [signatureUrl, setSignatureUrl]           = useState('');
   const [signaturePreview, setSignaturePreview]   = useState('');
   const [uploadingSignature, setUploadingSignature] = useState(false);
   const [sigSaved, setSigSaved]                   = useState(false);
   const signatureInputRef                         = useRef(null);
+
+  // ── BLACKLIST ──
+  const [blacklistedClients, setBlacklistedClients] = useState([]);
+  const [blacklistSearch, setBlacklistSearch] = useState('');
+  const [blacklistSearchResults, setBlacklistSearchResults] = useState([]);
+  const [blacklistReason, setBlacklistReason] = useState('');
+  const [selectedToBlacklist, setSelectedToBlacklist] = useState(null);
 
   useEffect(() => {
     loadCars(); loadAnnouncements(); loadReservations();
@@ -162,6 +172,20 @@ export default function Gestion() {
   useEffect(() => {
     if (tab === 5 && !signatureUrl) loadSignature();
   }, [tab]);
+
+  const fetchBlacklisted = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/clients/blacklisted/list`, {
+        headers: { 'x-admin-token': getToken() },
+      });
+      const data = await res.json();
+      setBlacklistedClients(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('fetchBlacklisted error:', err);
+    }
+  };
+
+  useEffect(() => { fetchBlacklisted(); }, []);
 
   // ── Shared fetch helper ──
   const apiFetch = async (path, options = {}) => {
@@ -269,6 +293,40 @@ export default function Gestion() {
       const data = await apiFetch(url);
       setClients(data);
     } catch {}
+  };
+
+  const searchToBlacklist = async (q) => {
+    if (q.length < 2) { setBlacklistSearchResults([]); return; }
+    try {
+      const res = await fetch(`${API_BASE}/api/clients?search=${encodeURIComponent(q)}`, {
+        headers: { 'x-admin-token': getToken() },
+      });
+      const data = await res.json();
+      setBlacklistSearchResults(data.filter(c => !c.blacklisted));
+    } catch {}
+  };
+
+  const handleBlacklist = async () => {
+    if (!selectedToBlacklist) return;
+    await fetch(`${API_BASE}/api/clients/${selectedToBlacklist.id}/blacklist`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': getToken() },
+      body: JSON.stringify({ reason: blacklistReason }),
+    });
+    setSelectedToBlacklist(null);
+    setBlacklistReason('');
+    setBlacklistSearch('');
+    setBlacklistSearchResults([]);
+    fetchBlacklisted();
+  };
+
+  const handleUnblacklist = async (id) => {
+    if (!window.confirm('Retirer ce client de la blacklist ?')) return;
+    await fetch(`${API_BASE}/api/clients/${id}/unblacklist`, {
+      method: 'PUT',
+      headers: { 'x-admin-token': getToken() },
+    });
+    fetchBlacklisted();
   };
 
   const saveClient = async (e) => {
@@ -901,6 +959,13 @@ export default function Gestion() {
               <button onClick={openResAdd} className="bg-[#FF6B00] text-white font-body text-sm px-4 py-2 rounded hover:bg-orange-500 transition-colors">+ Ajouter une réservation</button>
             </div>
 
+            <input
+              value={reservationSearch}
+              onChange={(e) => setReservationSearch(e.target.value)}
+              placeholder="🔍 Rechercher par nom, téléphone, CIN ou voiture..."
+              style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '10px 14px', borderRadius: '4px', fontFamily: 'DM Sans', fontSize: '13px', marginBottom: '16px', boxSizing: 'border-box', outline: 'none' }}
+            />
+
             <div className="overflow-x-auto rounded-lg border border-[#222]">
               <table className="w-full">
                 <thead className="bg-[#111] border-b border-[#222]">
@@ -911,7 +976,13 @@ export default function Gestion() {
                   </tr>
                 </thead>
                 <tbody>
-                  {reservations.map(r => (
+                  {reservations.filter(r => {
+                    if (!reservationSearch) return true;
+                    const q = reservationSearch.toLowerCase();
+                    return (r.client_name?.toLowerCase().includes(q)) ||
+                           (r.client_phone?.includes(q)) ||
+                           (r.car_name?.toLowerCase().includes(q));
+                  }).map(r => (
                     <tr key={r.id} className="border-b border-[#1a1a1a] hover:bg-[#111] transition-colors">
                       <td className="px-4 py-3 font-body text-sm">{r.car_name}</td>
                       <td className="px-4 py-3 font-body text-sm font-medium">{r.client_name}</td>
@@ -1384,6 +1455,79 @@ export default function Gestion() {
               <div style={{ color: '#3a2e1e', fontSize: 11, fontFamily: 'DM Sans', marginTop: 12 }}>
                 Format recommandé : PNG transparent, fond blanc, 400 × 200 px minimum.
               </div>
+            </div>
+
+            {/* ── BLACKLIST SECTION ── */}
+            <div style={{ marginTop: 32 }}>
+              <h3 style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 20, color: '#e24b4a', letterSpacing: 2, marginBottom: 16 }}>🚫 Clients Blacklistés</h3>
+
+              <div style={{ background: '#111', border: '0.5px solid #2a2010', borderRadius: 8, padding: 24, marginBottom: 16 }}>
+                <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'DM Sans', marginBottom: 12 }}>
+                  Ajouter un client à la blacklist
+                </div>
+                <div style={{ position: 'relative', marginBottom: 12 }}>
+                  <input
+                    value={blacklistSearch}
+                    onChange={e => { setBlacklistSearch(e.target.value); setSelectedToBlacklist(null); searchToBlacklist(e.target.value); }}
+                    placeholder="Rechercher un client (nom, CIN, téléphone)..."
+                    style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '10px 14px', borderRadius: 4, fontFamily: 'DM Sans', fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+                  />
+                  {blacklistSearchResults.length > 0 && !selectedToBlacklist && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#111', border: '0.5px solid #2a2010', borderRadius: 4, zIndex: 999, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+                      {blacklistSearchResults.map(c => (
+                        <div key={c.id}
+                          onClick={() => { setSelectedToBlacklist(c); setBlacklistSearch(c.nom_prenom); setBlacklistSearchResults([]); }}
+                          style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '0.5px solid #1a1a1a' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#1a1508'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <div style={{ color: '#fff', fontSize: 13, fontFamily: 'DM Sans' }}>{c.nom_prenom}</div>
+                          <div style={{ color: '#5a4a2a', fontSize: 11, fontFamily: 'DM Sans' }}>
+                            {c.cin_passport && `CIN: ${c.cin_passport}`}{c.cin_passport && c.telephone && ' — '}{c.telephone}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedToBlacklist && (
+                  <>
+                    <textarea
+                      value={blacklistReason}
+                      onChange={e => setBlacklistReason(e.target.value)}
+                      placeholder="Raison du blacklistage (optionnel)..."
+                      rows={3}
+                      style={{ width: '100%', background: '#0d0b08', border: '0.5px solid #2a2010', color: '#c9a87c', padding: '10px 14px', borderRadius: 4, fontFamily: 'DM Sans', fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', marginBottom: 10 }}
+                    />
+                    <button
+                      onClick={handleBlacklist}
+                      style={{ background: '#e24b4a', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontFamily: 'DM Sans', letterSpacing: 1 }}>
+                      🚫 Blacklister {selectedToBlacklist.nom_prenom}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {blacklistedClients.length === 0 ? (
+                <div style={{ color: '#5a4a2a', fontSize: 13, fontFamily: 'DM Sans', textAlign: 'center', padding: '20px 0' }}>Aucun client blacklisté</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {blacklistedClients.map(c => (
+                    <div key={c.id} style={{ background: '#111', border: '0.5px solid rgba(226,75,74,0.3)', borderRadius: 6, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                      <div>
+                        <div style={{ color: '#e24b4a', fontSize: 14, fontFamily: 'DM Sans', fontWeight: 600 }}>🚫 {c.nom_prenom}</div>
+                        {c.cin_passport && <div style={{ color: '#5a4a2a', fontSize: 11, fontFamily: 'DM Sans', marginTop: 2 }}>CIN: {c.cin_passport}</div>}
+                        {c.blacklist_reason && <div style={{ color: '#8a7a5a', fontSize: 12, fontFamily: 'DM Sans', marginTop: 4, fontStyle: 'italic' }}>"{c.blacklist_reason}"</div>}
+                        {c.blacklisted_at && <div style={{ color: '#3a2e1e', fontSize: 11, fontFamily: 'DM Sans', marginTop: 2 }}>{new Date(c.blacklisted_at).toLocaleDateString('fr-FR')}</div>}
+                      </div>
+                      <button
+                        onClick={() => handleUnblacklist(c.id)}
+                        style={{ background: 'transparent', color: '#FF6B00', border: '0.5px solid #FF6B00', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontFamily: 'DM Sans', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        Retirer
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
