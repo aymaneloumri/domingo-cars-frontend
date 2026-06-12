@@ -5,7 +5,7 @@ import ChefHeader from '../components/ChefHeader';
 import ClientSelector from '../components/ClientSelector';
 const pdfMake = window.pdfMake;
 
-const TABS = ['Voitures', 'Annonces', 'Réservations', 'Rapport', 'Clients', 'Paramètres'];
+const TABS = ['Clients', 'Réservations', 'Voitures', 'Rapport', 'Paramètres'];
 const CATEGORIES = ['Berline', 'Citadine', 'SUV', 'Utilitaire'];
 
 const MONTH_NAMES_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -170,7 +170,7 @@ export default function Gestion() {
   }, []);
 
   useEffect(() => {
-    if (tab === 5 && !signatureUrl) loadSignature();
+    if (tab === 4 && !signatureUrl) loadSignature();
   }, [tab]);
 
   const fetchBlacklisted = async () => {
@@ -776,8 +776,8 @@ export default function Gestion() {
           ))}
         </div>
 
-        {/* ── TAB 0: VOITURES ── */}
-        {tab === 0 && (
+        {/* ── TAB 2: VOITURES ── */}
+        {tab === 2 && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-heading text-2xl">VOITURES <span className="text-gray-500 text-lg">({cars.length})</span></h2>
@@ -908,66 +908,9 @@ export default function Gestion() {
           </div>
         )}
 
-        {/* ── TAB 1: ANNONCES ── */}
+
+        {/* ── TAB 1: RÉSERVATIONS ── */}
         {tab === 1 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading text-2xl">ANNONCES <span className="text-gray-500 text-lg">({announcements.length})</span></h2>
-              <button onClick={openAnnAdd} className="bg-[#FF6B00] text-white font-body text-sm px-4 py-2 rounded hover:bg-orange-500 transition-colors">+ Ajouter une annonce</button>
-            </div>
-
-            <div className="overflow-x-auto rounded-lg border border-[#222]">
-              <table className="w-full">
-                <thead className="bg-[#111] border-b border-[#222]">
-                  <tr>
-                    {['Titre','Message','Début','Fin','Statut','Actions'].map(h => (
-                      <th key={h} className="text-left text-xs text-gray-400 font-body uppercase tracking-wider px-4 py-3">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {announcements.map(a => (
-                    <tr key={a.id} className="border-b border-[#1a1a1a] hover:bg-[#111] transition-colors">
-                      <td className="px-4 py-3 font-body text-sm font-medium">{a.title}</td>
-                      <td className="px-4 py-3 font-body text-sm text-gray-400 max-w-xs truncate">{a.message}</td>
-                      <td className="px-4 py-3 font-body text-xs text-gray-400">{a.start_date}</td>
-                      <td className="px-4 py-3 font-body text-xs text-gray-400">{a.end_date}</td>
-                      <td className="px-4 py-3"><span className={`text-xs font-body px-2 py-0.5 rounded border ${statusBadge(a.status)}`}>{statusLabel(a.status)}</span></td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1.5">
-                          <button onClick={() => openAnnEdit(a)} className="text-xs font-body px-2 py-1 bg-[#1a1a1a] border border-[#333] rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">Modifier</button>
-                          <button onClick={() => toggleAnnStatus(a)} className="text-xs font-body px-2 py-1 bg-[#1a1a1a] border border-[#333] text-gray-400 rounded hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors">{a.status === 'active' ? 'Désactiver' : 'Activer'}</button>
-                          <button onClick={() => deleteAnn(a.id)} className="text-xs font-body px-2 py-1 bg-red-900/20 border border-red-800/40 text-red-400 rounded hover:bg-red-900/40 transition-colors">🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {annModal && (
-              <Modal title={editAnn ? "Modifier l'annonce" : 'Ajouter une annonce'} onClose={() => setAnnModal(false)}>
-                <form onSubmit={saveAnn} className="space-y-4">
-                  <Field label="Titre *"><input required className={inputCls} value={annForm.title} onChange={setC(setAnnForm, 'title')} /></Field>
-                  <Field label="Message *"><textarea required className={inputCls + ' resize-none h-24'} value={annForm.message} onChange={setC(setAnnForm, 'message')} /></Field>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Date début *"><input required type="date" className={inputCls} value={annForm.start_date} onChange={setC(setAnnForm, 'start_date')} /></Field>
-                    <Field label="Date fin *"><input required type="date" className={inputCls} value={annForm.end_date} onChange={setC(setAnnForm, 'end_date')} /></Field>
-                  </div>
-                  <Field label="Statut"><select className={selectCls} value={annForm.status} onChange={setC(setAnnForm, 'status')}><option value="active">Active</option><option value="inactive">Inactive</option></select></Field>
-                  <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={() => setAnnModal(false)} className="flex-1 border border-[#444] text-gray-400 font-body py-2 rounded hover:border-[#666]">Annuler</button>
-                    <button type="submit" className="flex-1 bg-[#FF6B00] text-white font-body font-semibold py-2 rounded hover:bg-orange-500">{editAnn ? 'Enregistrer' : 'Créer'}</button>
-                  </div>
-                </form>
-              </Modal>
-            )}
-          </div>
-        )}
-
-        {/* ── TAB 2: RÉSERVATIONS ── */}
-        {tab === 2 && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-heading text-2xl">RÉSERVATIONS <span className="text-gray-500 text-lg">({reservations.length})</span></h2>
@@ -1407,8 +1350,8 @@ export default function Gestion() {
           </div>
         )}
 
-        {/* ── TAB 5: PARAMÈTRES ── */}
-        {tab === 5 && (
+        {/* ── TAB 4: PARAMÈTRES ── */}
+        {tab === 4 && (
           <div style={{ maxWidth: 560 }}>
             <h2 className="font-heading text-2xl mb-6">PARAMÈTRES</h2>
 
@@ -1544,11 +1487,70 @@ export default function Gestion() {
                 </div>
               )}
             </div>
+
+            {/* ── ANNONCES SECTION ── */}
+            <div style={{ marginTop: 32 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 20, color: '#FF6B00', letterSpacing: 2, margin: 0 }}>📢 Annonces</h3>
+                <button onClick={openAnnAdd} style={{ background: '#FF6B00', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontFamily: 'DM Sans', letterSpacing: 1 }}>+ Ajouter</button>
+              </div>
+
+              {announcements.length === 0 ? (
+                <div style={{ color: '#5a4a2a', fontSize: 13, fontFamily: 'DM Sans', textAlign: 'center', padding: '20px 0' }}>Aucune annonce</div>
+              ) : (
+                <div style={{ background: '#111', border: '0.5px solid #222', borderRadius: 8, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '0.5px solid #222' }}>
+                        {['Titre', 'Début', 'Fin', 'Statut', 'Actions'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 1, fontFamily: 'DM Sans', padding: '10px 12px' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {announcements.map(a => (
+                        <tr key={a.id} style={{ borderBottom: '0.5px solid #1a1a1a' }}>
+                          <td style={{ padding: '10px 12px', fontFamily: 'DM Sans', fontSize: 13, color: '#c9a87c', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</td>
+                          <td style={{ padding: '10px 12px', fontFamily: 'DM Sans', fontSize: 11, color: '#5a4a2a' }}>{a.start_date}</td>
+                          <td style={{ padding: '10px 12px', fontFamily: 'DM Sans', fontSize: 11, color: '#5a4a2a' }}>{a.end_date}</td>
+                          <td style={{ padding: '10px 12px' }}><span className={`text-xs font-body px-2 py-0.5 rounded border ${statusBadge(a.status)}`}>{statusLabel(a.status)}</span></td>
+                          <td style={{ padding: '10px 12px' }}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button onClick={() => openAnnEdit(a)} style={{ fontSize: 11, fontFamily: 'DM Sans', padding: '4px 8px', background: '#1a1a1a', border: '0.5px solid #333', color: '#c9a87c', borderRadius: 4, cursor: 'pointer' }}>Modifier</button>
+                              <button onClick={() => toggleAnnStatus(a)} style={{ fontSize: 11, fontFamily: 'DM Sans', padding: '4px 8px', background: '#1a1a1a', border: '0.5px solid #333', color: '#888', borderRadius: 4, cursor: 'pointer' }}>{a.status === 'active' ? 'Désactiver' : 'Activer'}</button>
+                              <button onClick={() => deleteAnn(a.id)} style={{ fontSize: 11, fontFamily: 'DM Sans', padding: '4px 8px', background: 'rgba(180,40,40,0.15)', border: '0.5px solid rgba(200,60,60,0.3)', color: '#e24b4a', borderRadius: 4, cursor: 'pointer' }}>🗑</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {annModal && (
+                <Modal title={editAnn ? "Modifier l'annonce" : 'Ajouter une annonce'} onClose={() => setAnnModal(false)}>
+                  <form onSubmit={saveAnn} className="space-y-4">
+                    <Field label="Titre *"><input required className={inputCls} value={annForm.title} onChange={setC(setAnnForm, 'title')} /></Field>
+                    <Field label="Message *"><textarea required className={inputCls + ' resize-none h-24'} value={annForm.message} onChange={setC(setAnnForm, 'message')} /></Field>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Date début *"><input required type="date" className={inputCls} value={annForm.start_date} onChange={setC(setAnnForm, 'start_date')} /></Field>
+                      <Field label="Date fin *"><input required type="date" className={inputCls} value={annForm.end_date} onChange={setC(setAnnForm, 'end_date')} /></Field>
+                    </div>
+                    <Field label="Statut"><select className={selectCls} value={annForm.status} onChange={setC(setAnnForm, 'status')}><option value="active">Active</option><option value="inactive">Inactive</option></select></Field>
+                    <div className="flex gap-3 pt-2">
+                      <button type="button" onClick={() => setAnnModal(false)} className="flex-1 border border-[#444] text-gray-400 font-body py-2 rounded hover:border-[#666]">Annuler</button>
+                      <button type="submit" className="flex-1 bg-[#FF6B00] text-white font-body font-semibold py-2 rounded hover:bg-orange-500">{editAnn ? 'Enregistrer' : 'Créer'}</button>
+                    </div>
+                  </form>
+                </Modal>
+              )}
+            </div>
           </div>
         )}
 
-        {/* ── TAB 4: CLIENTS ── */}
-        {tab === 4 && (
+        {/* ── TAB 0: CLIENTS ── */}
+        {tab === 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-heading text-2xl">CLIENTS <span className="text-gray-500 text-lg">({clients.length})</span></h2>
