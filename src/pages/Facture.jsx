@@ -5,6 +5,21 @@ import { API_BASE } from '../utils/config';
 import { getToken } from '../utils/auth';
 const pdfMake = window.pdfMake;
 
+const toBase64FromUrl = (url) => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    resolve(canvas.toDataURL('image/png'));
+  };
+  img.onerror = reject;
+  img.src = url;
+});
+
 export default function Facture() {
   const token = getToken();
 
@@ -13,8 +28,6 @@ export default function Facture() {
   const [selectedResa, setSelectedResa] = useState(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
-  const [avance, setAvance] = useState(0);
-  const [reste, setReste] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -26,15 +39,6 @@ export default function Facture() {
       .then(data => setInvoiceNumber(data.invoice_number || 'FAC-0001'))
       .catch(() => setInvoiceNumber('FAC-0001'));
   }, []);
-
-  useEffect(() => {
-    if (selectedResa) {
-      const prixHT = selectedResa.prix_total || 0;
-      const tva = Math.round(prixHT * 0.20 * 100) / 100;
-      const ttc = Math.round((prixHT + tva) * 100) / 100;
-      setReste(Math.round((ttc - avance) * 100) / 100);
-    }
-  }, [avance, selectedResa]);
 
   const handleClientSelect = async (client) => {
     setSelectedClient(client);
@@ -54,11 +58,6 @@ export default function Facture() {
 
   const handleResaSelect = (resa) => {
     setSelectedResa(resa);
-    setAvance(0);
-    const prixHT = resa.prix_total || 0;
-    const tva = Math.round(prixHT * 0.20 * 100) / 100;
-    const ttc = Math.round((prixHT + tva) * 100) / 100;
-    setReste(ttc);
     setSaved(false);
   };
 
@@ -74,15 +73,39 @@ export default function Facture() {
     }
     setGenerating(true);
 
+    let logoBase64 = null;
+    try {
+      logoBase64 = await toBase64FromUrl('/logo.jpg');
+    } catch (err) {
+      console.error('Logo load error:', err);
+    }
+
     try {
       await fetch(`${API_BASE}/api/reservations/${selectedResa.id}/invoice`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify({ invoice_number: invoiceNumber, invoice_date: invoiceDate, avance, reste }),
+        body: JSON.stringify({ invoice_number: invoiceNumber, invoice_date: invoiceDate }),
       });
       setSaved(true);
     } catch (err) {
       console.error(err);
+    }
+
+    const prixHT = selectedResa.prix_total || 0;
+    const tva = Math.round(prixHT * 0.20 * 100) / 100;
+    const ttc = Math.round((prixHT + tva) * 100) / 100;
+
+    const headerColumns = [
+      {
+        stack: [
+          { text: 'DOMINGO CARS', style: 'companyNameMain' },
+          { text: 'LUXURY RENT', style: 'companyNameSub' },
+        ],
+        width: '*',
+      },
+    ];
+    if (logoBase64) {
+      headerColumns.push({ image: logoBase64, width: 60, height: 60, alignment: 'right' });
     }
 
     const docDefinition = {
@@ -90,16 +113,7 @@ export default function Facture() {
       pageMargins: [40, 40, 40, 40],
       content: [
         {
-          columns: [
-            {
-              stack: [
-                { text: 'FACTURE', style: 'invoiceTitle' },
-                { text: `N°: ${invoiceNumber}`, style: 'invoiceNumber' },
-                { text: `Date: ${invoiceDate}`, style: 'invoiceInfo' },
-              ],
-              width: '*',
-            },
-          ],
+          columns: headerColumns,
           margin: [0, 0, 0, 20],
         },
         { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 0, 0, 16] },
@@ -145,85 +159,64 @@ export default function Facture() {
           margin: [0, 0, 0, 16],
         },
         { text: 'DÉTAILS DE FACTURATION', style: 'sectionTitle', margin: [0, 0, 0, 10] },
-        (() => {
-          const prixHT = selectedResa.prix_total || 0;
-          const tva = Math.round(prixHT * 0.20 * 100) / 100;
-          const ttc = Math.round((prixHT + tva) * 100) / 100;
-          const resteAPayer = Math.round((ttc - avance) * 100) / 100;
-          return {
-            table: {
-              widths: ['*', 150],
-              body: [
-                [{ text: 'Description', style: 'tableHeader' }, { text: 'Montant', style: 'tableHeader', alignment: 'right' }],
-                [
-                  { text: `Location ${selectedResa.car_name} — ${selectedResa.nb_jours || 0} jour(s) × ${selectedResa.prix_par_jour || 0} MAD/jour`, style: 'tableCell' },
-                  { text: `${prixHT} MAD`, style: 'tableCell', alignment: 'right' },
-                ],
-                [
-                  { text: 'Total HT', style: 'tableCell', color: '#666' },
-                  { text: `${prixHT} MAD`, style: 'tableCell', alignment: 'right', color: '#333' },
-                ],
-                [
-                  { text: 'TVA (20%)', style: 'tableCell', color: '#666' },
-                  { text: `${tva} MAD`, style: 'tableCell', alignment: 'right', color: '#666' },
-                ],
-                [
-                  { text: 'Total TTC', style: 'tableCell', bold: true },
-                  { text: `${ttc} MAD`, style: 'tableCell', alignment: 'right', bold: true, color: '#333' },
-                ],
-                [
-                  { text: 'Avance versée', style: 'tableCell', color: '#666' },
-                  { text: `- ${avance} MAD`, style: 'tableCell', alignment: 'right', color: '#4CAF50' },
-                ],
-                [
-                  { text: 'RESTE À PAYER', style: 'totalLabel' },
-                  { text: `${resteAPayer} MAD`, style: 'totalAmount' },
-                ],
-              ],
-            },
-            layout: {
-              fillColor: (i) => i === 0 ? '#FF6B00' : i === 6 ? '#0a0a0a' : i % 2 === 0 ? '#f9f9f9' : '#fff',
-              hLineColor: () => '#ddd',
-              vLineColor: () => '#ddd',
-            },
-            margin: [0, 0, 0, 24],
-          };
-        })(),
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 20, 0, 12] },
         {
-          columns: [
-            {
-              stack: [
-                { text: 'DOMINGO CARS LUXURY RENT', style: 'footerCompany' },
-                { text: 'R.C.: 710225 | ICE: 003820019000072 | I.F.: 37601415', style: 'footerInfo' },
+          table: {
+            widths: ['*', 150],
+            body: [
+              [
+                { text: 'Description', style: 'tableHeader' },
+                { text: 'Montant', style: 'tableHeader', alignment: 'right' },
               ],
-              width: '*',
-            },
-            {
-              stack: [
-                { text: 'Tél: +212 701 050 809', style: 'footerInfo', alignment: 'right' },
-                { text: 'Email: Domingocarsrent@gmail.com', style: 'footerInfo', alignment: 'right' },
-                { text: 'Instagram: @Domingocarsrent', style: 'footerInfo', alignment: 'right' },
-                { text: 'Casablanca, Maroc', style: 'footerInfo', alignment: 'right' },
+              [
+                { text: `Location ${selectedResa.car_name} — ${selectedResa.nb_jours || 0} jour(s) × ${selectedResa.prix_par_jour || 0} MAD/jour`, style: 'tableCell' },
+                { text: `${prixHT} MAD`, style: 'tableCell', alignment: 'right' },
               ],
-              width: 'auto',
-            },
+              [
+                { text: 'Total HT', style: 'tableCell', color: '#666' },
+                { text: `${prixHT} MAD`, style: 'tableCell', alignment: 'right', color: '#333' },
+              ],
+              [
+                { text: 'TVA (20%)', style: 'tableCell', color: '#666' },
+                { text: `${tva} MAD`, style: 'tableCell', alignment: 'right', color: '#666' },
+              ],
+              [
+                { text: 'TOTAL À PAYER', style: 'totalLabel' },
+                { text: `${ttc} MAD`, style: 'totalAmount' },
+              ],
+            ],
+          },
+          layout: {
+            fillColor: (i) => i === 0 ? '#FF6B00' : i === 4 ? '#0a0a0a' : i % 2 === 0 ? '#f9f9f9' : '#fff',
+            hLineColor: () => '#ddd',
+            vLineColor: () => '#ddd',
+          },
+          margin: [0, 0, 0, 24],
+        },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 20, 0, 10] },
+        {
+          stack: [
+            { text: 'DOMINGO CARS LUXURY RENT — R.C.: 710225 | ICE: 003820019000072 | I.F.: 37601415', style: 'footerLine', alignment: 'center' },
+            { text: 'Tél: +212 701 050 809 | www.domingocars.ma | @Domingocarsrent', style: 'footerLine', alignment: 'center' },
+            { text: 'SG: IMM 8 MG 3 RDC, LOTISSEMENT JARDIN, Casablanca, Maroc | Domingocarsrent@gmail.com', style: 'footerLine', alignment: 'center' },
           ],
         },
       ],
       styles: {
-        invoiceTitle: { fontSize: 28, bold: true, color: '#FF6B00', margin: [0, 0, 0, 4] },
-        invoiceNumber:{ fontSize: 14, bold: true, color: '#333', margin: [0, 0, 0, 4] },
-        invoiceInfo:  { fontSize: 10, color: '#666' },
-        sectionTitle: { fontSize: 11, bold: true, color: '#FF6B00' },
-        fieldValue:   { fontSize: 13, bold: true, color: '#333', margin: [0, 4, 0, 2] },
-        fieldInfo:    { fontSize: 10, color: '#666', margin: [0, 1, 0, 0] },
-        tableHeader:  { fontSize: 10, bold: true, color: '#fff', margin: [6, 6, 6, 6] },
-        tableCell:    { fontSize: 11, color: '#333', margin: [6, 6, 6, 6] },
-        totalLabel:   { fontSize: 12, bold: true, color: '#fff', margin: [6, 8, 6, 8] },
-        totalAmount:  { fontSize: 14, bold: true, color: '#FF6B00', margin: [6, 8, 6, 8], alignment: 'right' },
-        footerCompany: { fontSize: 11, bold: true, color: '#FF6B00', margin: [0, 0, 0, 4] },
-        footerInfo:    { fontSize: 9, color: '#888', margin: [0, 1, 0, 0] },
+        companyNameMain: { fontSize: 22, bold: true, color: '#0a0a0a', margin: [0, 0, 0, 0] },
+        companyNameSub:  { fontSize: 12, color: '#FF6B00', characterSpacing: 2, margin: [0, 2, 0, 0] },
+        invoiceTitle:    { fontSize: 28, bold: true, color: '#FF6B00', margin: [0, 0, 0, 4] },
+        invoiceNumber:   { fontSize: 14, bold: true, color: '#333', margin: [0, 0, 0, 4] },
+        invoiceInfo:     { fontSize: 10, color: '#666' },
+        sectionTitle:    { fontSize: 11, bold: true, color: '#FF6B00' },
+        fieldValue:      { fontSize: 13, bold: true, color: '#333', margin: [0, 4, 0, 2] },
+        fieldInfo:       { fontSize: 10, color: '#666', margin: [0, 1, 0, 0] },
+        tableHeader:     { fontSize: 10, bold: true, color: '#fff', margin: [6, 6, 6, 6] },
+        tableCell:       { fontSize: 11, color: '#333', margin: [6, 6, 6, 6] },
+        totalLabel:      { fontSize: 12, bold: true, color: '#fff', margin: [6, 8, 6, 8] },
+        totalAmount:     { fontSize: 14, bold: true, color: '#FF6B00', margin: [6, 8, 6, 8], alignment: 'right' },
+        footerCompany:   { fontSize: 11, bold: true, color: '#FF6B00', margin: [0, 0, 0, 4] },
+        footerInfo:      { fontSize: 9, color: '#888', margin: [0, 1, 0, 0] },
+        footerLine:      { fontSize: 8, color: '#888', margin: [0, 2, 0, 0] },
       },
       defaultStyle: { font: 'Roboto' },
     };
@@ -297,40 +290,6 @@ export default function Facture() {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Step 3 — Payment */}
-        {selectedResa && (
-          <div style={{ marginBottom: '24px', padding: '20px', background: '#111', border: '0.5px solid #2a2010', borderRadius: '8px' }}>
-            <label style={{ color: '#FF6B00', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', display: 'block', marginBottom: '16px' }}>
-              3. Détails paiement
-            </label>
-            {(() => {
-              const prixHT = selectedResa.prix_total || 0;
-              const tva = Math.round(prixHT * 0.20 * 100) / 100;
-              const ttc = Math.round((prixHT + tva) * 100) / 100;
-              return (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ color: '#5a4a2a', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>Total</label>
-                <div style={{ color: '#FF6B00', fontFamily: '"Bebas Neue", cursive', fontSize: '28px' }}>{prixHT} MAD</div>
-                <div style={{ marginTop: '8px' }}>
-                  <div style={{ color: '#5a4a2a', fontSize: '10px', fontFamily: 'DM Sans' }}>HT: {prixHT} MAD + TVA 20%: {tva} MAD</div>
-                  <div style={{ color: '#fff', fontSize: '12px', fontFamily: 'DM Sans', fontWeight: 500 }}>TTC: {ttc} MAD</div>
-                </div>
-              </div>
-              <div>
-                <label style={{ color: '#5a4a2a', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>Avance versée</label>
-                <input type="number" value={avance} onChange={e => setAvance(parseFloat(e.target.value) || 0)} style={inputStyle} />
-              </div>
-              <div>
-                <label style={{ color: '#5a4a2a', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>Reste à payer</label>
-                <div style={{ color: reste > 0 ? '#e24b4a' : '#4CAF50', fontFamily: '"Bebas Neue", cursive', fontSize: '28px' }}>{reste} MAD</div>
-              </div>
-            </div>
-              );
-            })()}
           </div>
         )}
 
