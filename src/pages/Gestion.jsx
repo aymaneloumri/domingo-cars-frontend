@@ -191,6 +191,23 @@ export default function Gestion() {
     return { nb_jours: days > 0 ? days : 0, prix_total: days > 0 ? days * (parseFloat(ppj) || 0) : 0 };
   };
 
+  const calculateNbJours = (startDatetime, endDatetime) => {
+    if (!startDatetime || !endDatetime) return 0;
+    const start = new Date(startDatetime);
+    const end = new Date(endDatetime);
+    let effectiveStart = new Date(start);
+    if (start.getHours() >= 18) {
+      effectiveStart.setDate(effectiveStart.getDate() + 1);
+      effectiveStart.setHours(0, 0, 0, 0);
+    }
+    const startDateOnly = new Date(effectiveStart.getFullYear(), effectiveStart.getMonth(), effectiveStart.getDate());
+    const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const diffMs = endDateOnly - startDateOnly;
+    let nb_jours = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+    if (nb_jours < 1) nb_jours = 1;
+    return nb_jours;
+  };
+
   const loadRapport = async () => {
     setRapportLoading(true);
     setRapportData(null);
@@ -964,13 +981,7 @@ export default function Gestion() {
                         onChange={e => {
                           const val = e.target.value;
                           const startDate = val ? val.slice(0, 10) : '';
-                          if (resForm.end_datetime && val) {
-                            const days = Math.ceil((new Date(resForm.end_datetime) - new Date(val)) / (1000 * 60 * 60 * 24));
-                            const d = days > 0 ? days : 0;
-                            setResForm(p => ({ ...p, start_datetime: val, start_date: startDate, end_datetime: '', end_date: '', nb_jours: 0, prix_total: 0 }));
-                          } else {
-                            setResForm(p => ({ ...p, start_datetime: val, start_date: startDate, end_datetime: '', end_date: '', nb_jours: 0, prix_total: 0 }));
-                          }
+                          setResForm(p => ({ ...p, start_datetime: val, start_date: startDate, end_datetime: '', end_date: '', nb_jours: 0, prix_total: 0 }));
                           setResConflict('');
                         }} />
                     </Field>
@@ -1005,8 +1016,7 @@ export default function Gestion() {
                           const val = e.target.value;
                           const endDate = val ? val.slice(0, 10) : '';
                           if (resForm.start_datetime && val) {
-                            const days = Math.ceil((new Date(val) - new Date(resForm.start_datetime)) / (1000 * 60 * 60 * 24));
-                            const d = days > 0 ? days : 0;
+                            const d = calculateNbJours(resForm.start_datetime, val);
                             const total = d * (resForm.prix_par_jour || 0);
                             setResForm(p => ({ ...p, end_datetime: val, end_date: endDate, nb_jours: d, prix_total: total }));
                           } else {
