@@ -44,7 +44,7 @@ const generateArabicCanvas = async (data) => {
     'width:650px', 'background:white', 'padding:28px 36px 28px',
     'direction:rtl', 'text-align:right',
     "font-family:'Tahoma','Arial',sans-serif",
-    'font-size:11px', 'line-height:1.5', 'color:#000', 'box-sizing:border-box',
+    'font-size:14px', 'line-height:1.5', 'color:#000', 'box-sizing:border-box',
   ].join(';');
 
   div.innerHTML = `
@@ -89,7 +89,7 @@ const generateArabicCanvas = async (data) => {
 
   document.body.appendChild(div);
   const canvas = await html2canvas(div, {
-    scale: 1.5,
+    scale: 1.3,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
@@ -135,7 +135,6 @@ const buildPecDocDef = (arabicImageBase64, logoBase64, documentNumber) => {
     content: [
       { columns: headerColumns, margin: [0, 0, 0, 20] },
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 0, 0, 16] },
-      { text: `وثيقة رقم: ${documentNumber}`, alignment: 'right', fontSize: 10, color: '#666', margin: [0, 0, 0, 10] },
       { image: arabicImageBase64, width: 500 },
     ],
     styles: {
