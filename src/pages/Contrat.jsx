@@ -77,7 +77,7 @@ function emptyForm() {
   };
 }
 
-export default function Contrat() {
+export default function Contrat({ embedded = false }) {
   const [cars, setCars] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [form, setForm] = useState(emptyForm());
@@ -416,8 +416,8 @@ export default function Contrat() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white pt-14">
-      <ChefHeader title="CONTRATS" />
+    <div className={embedded ? 'bg-[#0A0A0A] text-white' : 'min-h-screen bg-[#0A0A0A] text-white pt-14'}>
+      {!embedded && <ChefHeader title="CONTRATS" />}
       {autoFilled && (
         <div style={{ position: 'fixed', top: '80px', right: '20px',
           background: 'rgba(255,107,0,0.15)', border: '0.5px solid #FF6B00',

@@ -164,7 +164,7 @@ const buildInvoiceDocDef = (resa, client, invoiceNumber, invoiceDate, logoBase64
   };
 };
 
-export default function Facture() {
+export default function Facture({ embedded = false }) {
   const token = getToken();
 
   const [selectedClient, setSelectedClient] = useState(null);
@@ -303,10 +303,10 @@ export default function Facture() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff' }}>
-      <ChefHeader title="FACTURATION" />
+    <div style={{ minHeight: embedded ? undefined : '100vh', background: '#0a0a0a', color: '#fff' }}>
+      {!embedded && <ChefHeader title="FACTURATION" />}
 
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '80px 20px 40px' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: embedded ? '20px 20px 40px' : '80px 20px 40px' }}>
 
         {/* Invoice number + date */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px', padding: '20px', background: '#111', border: '0.5px solid #2a2010', borderRadius: '8px' }}>

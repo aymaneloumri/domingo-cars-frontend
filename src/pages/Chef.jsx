@@ -20,15 +20,9 @@ const NAV_CARDS = [
   },
   {
     icon: '📄',
-    title: 'CONTRATS',
-    desc: 'Créer & gérer les contrats PDF',
-    path: '/chef/contrat',
-  },
-  {
-    icon: '🧾',
-    title: 'FACTURATION',
-    desc: 'Générer une facture client',
-    path: '/chef/facture',
+    title: 'DOCUMENTS',
+    desc: 'Contrats, factures, prise en charge',
+    path: '/chef/documents',
   },
   {
     icon: '🔔',
