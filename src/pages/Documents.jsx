@@ -41,55 +41,55 @@ const generateArabicCanvas = async (data) => {
   const div = document.createElement('div');
   div.style.cssText = [
     'position:fixed', 'top:-9999px', 'left:-9999px',
-    'width:700px', 'background:white', 'padding:50px 50px 60px',
+    'width:650px', 'background:white', 'padding:28px 36px 28px',
     'direction:rtl', 'text-align:right',
     "font-family:'Tahoma','Arial',sans-serif",
-    'font-size:14px', 'line-height:2.2', 'color:#000', 'box-sizing:border-box',
+    'font-size:11px', 'line-height:1.5', 'color:#000', 'box-sizing:border-box',
   ].join(';');
 
   div.innerHTML = `
-    <div style="text-align:center;font-size:17px;font-weight:bold;margin-bottom:24px;padding-bottom:12px;border-bottom:2px solid #FF6B00;">
+    <div style="text-align:center;font-size:14px;font-weight:bold;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #FF6B00;">
       التزام بتحمل مسؤولية سيارة وكل تبعياتها
     </div>
-    <p style="margin-bottom:10px;">أنا الموقع أسفله؛</p>
-    <p style="margin-bottom:10px;">
+    <p style="margin-bottom:7px;">أنا الموقع أسفله؛</p>
+    <p style="margin-bottom:7px;">
       السيد : <strong>${data.client_name}</strong>
       &nbsp;&nbsp;الحامل لبطاقة التعريف الوطنية رقم : <strong>${data.client_cin || '—'}</strong>
       &nbsp;&nbsp;الساكن بـ : <strong>${data.client_address || '—'}</strong>
     </p>
-    <p style="margin-bottom:10px;">
+    <p style="margin-bottom:7px;">
       بمقتضى هذا الالتزام، وتحت جميع الضمانات الفعلية والقانونية في أوسع نطاقها ومفهومها العام الجاري بها
       العمل والسارية المفعول والجاري بها حسب قانون الالتزامات والعقود، أشهد وأصرح وألتزم بأني المسؤول
       الوحيد عن السيارة ابتداء من توقيع هذا الالتزام، كما أنني ألتزم بتحمل جميع المسؤوليات القانونية
       والمدنية الخاصة بالسيارة ذات المزايا والأوصاف التالية :
     </p>
-    <p style="margin-bottom:10px;">
+    <p style="margin-bottom:7px;">
       مسجلة تحت رقم : <strong>${data.matricule || '—'}</strong>
       &nbsp;&nbsp;العلامة : <strong>${data.brand || '—'}</strong>
       &nbsp;&nbsp;النوع : <strong>${data.model || '—'}</strong>
       &nbsp;&nbsp;الصنف : <strong>${data.category || '—'}</strong>
     </p>
-    <p style="margin-bottom:10px;">
+    <p style="margin-bottom:7px;">
       كما أنني المسؤول الوحيد في أداء الرسوم وكل ما يتعلق بها بما في ذلك الحوادث والدعائر ومخالفات
       المرور التي تتعرض لها السيارة السالفة الذكر وأنني المسؤول عنها والمكلف بها ابتداء من تاريخ الامضاء.
     </p>
-    <p style="margin-bottom:10px;">
+    <p style="margin-bottom:7px;">
       كما أنني ألتزم بأداء مستحقات وواجبات كراء السيارة عن كل يوم تأخير ناتج عن عدم ارجاع السيارة
       في موعدها المحدد.
     </p>
-    <p style="margin-bottom:10px;">
+    <p style="margin-bottom:7px;">
       اشهد بتحمل مسؤولية السيارة المذكورة أعلاه وتحمل مسؤولية سياقتها أمام الادارات العمومية
       والشبه العمومية والسلطات القضائية ابتداء من تاريخ التوقيع على هذا الالتزام.
     </p>
-    <div style="margin-top:50px;">
+    <div style="margin-top:20px;">
       <p>حرر بتاريخ : <strong>${data.document_date}</strong></p>
-      <p style="margin-top:30px;">إمضاء : ......................................................</p>
+      <p style="margin-top:15px;">إمضاء : ......................................................</p>
     </div>
   `;
 
   document.body.appendChild(div);
   const canvas = await html2canvas(div, {
-    scale: 2,
+    scale: 1.5,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
@@ -122,7 +122,7 @@ const buildPecDocDef = (arabicImageBase64, logoBase64, documentNumber) => {
 
   return {
     pageSize: 'A4',
-    pageMargins: [40, 40, 40, 80],
+    pageMargins: [40, 30, 40, 70],
     footer: () => ({
       margin: [40, 0, 40, 20],
       stack: [
@@ -136,7 +136,7 @@ const buildPecDocDef = (arabicImageBase64, logoBase64, documentNumber) => {
       { columns: headerColumns, margin: [0, 0, 0, 20] },
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#FF6B00' }], margin: [0, 0, 0, 16] },
       { text: `وثيقة رقم: ${documentNumber}`, alignment: 'right', fontSize: 10, color: '#666', margin: [0, 0, 0, 10] },
-      { image: arabicImageBase64, width: 515 },
+      { image: arabicImageBase64, width: 500 },
     ],
     styles: {
       companyNameMain: { fontSize: 22, bold: true, color: '#0a0a0a' },
